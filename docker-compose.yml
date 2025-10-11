@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  genai-app:
+    build: .
+    image: yourname/genai-app:latest
+    container_name: genai-rag-app
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount your dataset here
+      - ./arxiv_2.9k.jsonl:/data/arxiv_2.9k.jsonl:ro
+      # Optional: persist the index to avoid rebuilding
+      - genai-index:/app/index
+    environment:
+      - DATA_PATH=/data/arxiv_2.9k.jsonl
+      - INDEX_DIR=/index
+      - MODEL_PATH=/models/llama-model.gguf
+      - IMAGE_API_PROVIDER=pollinations
+      # Uncomment to use OpenAI DALL-E
+      # - IMAGE_API_PROVIDER=openai
+      # - IMAGE_API_KEY=sk-your-api-key-here
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Uncomment for GPU support (requires nvidia-docker)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+volumes:
+  genai-index:
+    driver: local

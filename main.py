@@ -1,0 +1,418 @@
+import os
+import sys
+import json
+import hashlib
+import time
+import argparse
+from pathlib import Path
+from typing import List, Dict, Optional
+from contextlib import asynccontextmanager
+import logging
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
+
+from utils.indexer import VectorIndexer
+from utils.retriever import RAGPipeline
+from utils.image_gen import ImageGenerator
+
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Global state
+indexer: Optional[VectorIndexer] = None
+rag_pipeline: Optional[RAGPipeline] = None
+image_generator: Optional[ImageGenerator] = None
+current_dataset_hash: Optional[str] = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown events."""
+    # Startup
+    logger.info("Starting up application...")
+    try:
+        initialize_system()
+    except Exception as e:
+        logger.error(f"Failed to initialize system: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown (cleanup if needed)
+    logger.info("Shutting down application...")
+
+# Initialize FastAPI with lifespan
+app = FastAPI(title="GenAI RAG Application", lifespan=lifespan)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static directory for serving generated images
+Path("static/generated_images").mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Request/Response Models
+class QueryRequest(BaseModel):
+    query: str
+    generate_image: bool = False
+    top_k: int = 5
+
+class Citation(BaseModel):
+    doc_id: str
+    title: str
+    authors: str
+
+class QueryResponse(BaseModel):
+    answer: str
+    citations: List[Citation]
+    retrieved_context: List[str]
+    image_url: Optional[str] = None
+    performance_metrics: Optional[Dict] = None
+
+def compute_file_hash(filepath: str) -> str:
+    """Compute SHA256 hash of file to detect changes."""
+    sha256_hash = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
+def initialize_system():
+    """Initialize the system components."""
+    global indexer, rag_pipeline, image_generator
+    
+    # Import config after it's initialized
+    from utils.config import config
+    
+    # Get paths from utils.config
+    data_path = config.DATA_PATH
+    index_dir = config.INDEX_DIR
+    
+    logger.info(f"Initializing system with DATA_PATH: {data_path}")
+    
+    if not os.path.exists(data_path):
+        error_msg = f"""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ ERROR: Dataset not found at {data_path}
+║
+║ Please ensure:
+║ 1. The file exists and the path is correct
+║ 2. You have read permissions for the file
+║ 3. The file is a valid .jsonl file with required fields (id, title, abstract)
+║
+║ For Docker deployments, ensure you mount the dataset:
+║   docker run -v $(pwd)/your-dataset.jsonl:/data/arxiv_2.9k.jsonl:ro ...
+║
+║ For local development:
+║   Place your dataset in: data/arxiv_2.9k.jsonl
+║   Or set DATA_PATH environment variable
+╚══════════════════════════════════════════════════════════════════════════════╝
+        """
+        logger.error(error_msg)
+        raise FileNotFoundError(error_msg)
+    
+    # Check if dataset has changed
+    new_hash = compute_file_hash(data_path)
+    hash_file = Path(index_dir) / "dataset_hash.txt"
+    
+    needs_reindex = True
+    if hash_file.exists():
+        with open(hash_file, 'r') as f:
+            old_hash = f.read().strip()
+            if old_hash == new_hash:
+                needs_reindex = False
+                logger.info("Dataset unchanged, loading existing index")
+    
+    # Initialize components
+    indexer = VectorIndexer(index_dir=index_dir)
+    
+    if needs_reindex:
+        logger.info("Building new index...")
+        indexer.build_index(data_path)
+        # Save hash
+        Path(index_dir).mkdir(parents=True, exist_ok=True)
+        with open(hash_file, 'w') as f:
+            f.write(new_hash)
+        logger.info("Index built successfully")
+    else:
+        logger.info("Loading existing index...")
+        indexer.load_index()
+        logger.info("Index loaded successfully")
+    
+    rag_pipeline = RAGPipeline(indexer)
+    image_generator = ImageGenerator()
+    current_dataset_hash = new_hash
+    
+    logger.info("System initialized successfully")
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    """Serve the main web UI."""
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "indexed_documents": len(indexer.documents) if indexer else 0,
+        "dataset_hash": current_dataset_hash
+    }
+
+@app.post("/answer", response_model=QueryResponse)
+async def answer_query(request: QueryRequest):
+    """Answer a query using RAG."""
+    if not rag_pipeline:
+        raise HTTPException(status_code=503, detail="System not initialized")
+    
+    try:
+        start_time = time.time()
+        logger.info(f"Processing query: {request.query}")
+        
+        # Retrieve and generate answer with timing
+        retrieval_start = time.time()
+        result = rag_pipeline.answer_query(
+            query=request.query,
+            top_k=request.top_k
+        )
+        retrieval_time = time.time() - retrieval_start
+        
+        # Generate image if requested
+        image_url = None
+        image_time = 0
+        if request.generate_image:
+            import torch
+            from utils.config import config
+            # Check if CUDA is available
+            if config.IMAGE_API_PROVIDER == "local" and (not torch.cuda.is_available() or config.FORCE_CPU):
+                logger.warning("Image generation skipped: CUDA not available or FORCE_CPU is set. Image generation requires GPU for local provider.")
+            else:
+                logger.info("Generating image...")
+                image_start = time.time()
+                image_url = await image_generator.generate_image(
+                    prompt=result["answer"],
+                    query=request.query
+                )
+                image_time = time.time() - image_start
+        
+        total_time = time.time() - start_time
+        
+        # Build performance metrics
+        performance_metrics = {
+            "total_time_ms": round(total_time * 1000, 2),
+            "retrieval_time_ms": round(retrieval_time * 1000, 2),
+            "image_generation_time_ms": round(image_time * 1000, 2) if image_url else 0,
+            "documents_retrieved": len(result["citations"]),
+            "answer_length_words": len(result["answer"].split())
+        }
+        
+        logger.info(f"Query completed in {total_time:.2f}s (retrieval: {retrieval_time:.2f}s, image: {image_time:.2f}s)")
+        
+        return QueryResponse(
+            answer=result["answer"],
+            citations=result["citations"],
+            retrieved_context=result["retrieved_context"],
+            image_url=image_url,
+            performance_metrics=performance_metrics
+        )
+    
+    except Exception as e:
+        logger.error(f"Error processing query: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/stream")
+async def stream_answer(request: QueryRequest):
+    """Stream answer generation (bonus endpoint)."""
+    if not rag_pipeline:
+        raise HTTPException(status_code=503, detail="System not initialized")
+    
+    async def generate():
+        try:
+            async for chunk in rag_pipeline.stream_answer(
+                query=request.query,
+                top_k=request.top_k
+            ):
+                yield f"data: {json.dumps(chunk)}\n\n"
+        except Exception as e:
+            logger.error(f"Streaming error: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+@app.get("/stats")
+async def get_stats():
+    """Get system statistics."""
+    if not indexer:
+        raise HTTPException(status_code=503, detail="System not initialized")
+    
+    return {
+        "total_documents": len(indexer.documents),
+        "index_size": indexer.get_index_size(),
+        "embedding_dimension": indexer.embedding_dim
+    }
+
+def run_cli():
+    """Command-line interface for the GenAI RAG application."""
+    parser = argparse.ArgumentParser(
+        description="GenAI RAG Application - Academic Research Assistant",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Index a dataset
+  python main.py index --data data/arxiv_2.9k.jsonl --output index/
+  
+  # Query the system
+  python main.py query "What are recent advances in transformers?" --top-k 5
+  
+  # Start the web server
+  python main.py serve --port 8080 --host 0.0.0.0
+  
+  # Evaluate the system
+  python main.py evaluate --url http://localhost:8080
+        """
+    )
+    
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    
+    # Index command
+    index_parser = subparsers.add_parser('index', help='Build vector index from dataset')
+    index_parser.add_argument('--data', required=True, help='Path to JSONL dataset')
+    index_parser.add_argument('--output', default='index/', help='Output directory for index')
+    
+    # Query command
+    query_parser = subparsers.add_parser('query', help='Query the RAG system')
+    query_parser.add_argument('query', help='Query text')
+    query_parser.add_argument('--top-k', type=int, default=5, help='Number of documents to retrieve')
+    query_parser.add_argument('--index-dir', default='index/', help='Index directory')
+    query_parser.add_argument('--model', default='models/llama-model.gguf', help='LLM model path')
+    
+    # Serve command
+    serve_parser = subparsers.add_parser('serve', help='Start the web server')
+    serve_parser.add_argument('--port', type=int, default=8080, help='Port to listen on')
+    serve_parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
+    serve_parser.add_argument('--reload', action='store_true', help='Enable auto-reload')
+    
+    # Evaluate command
+    evaluate_parser = subparsers.add_parser('evaluate', help='Run evaluation tests')
+    evaluate_parser.add_argument('--url', default='http://localhost:8080', help='API base URL')
+    
+    args = parser.parse_args()
+    
+    if args.command == 'index':
+        print("\n" + "="*70)
+        print("📦 Building Vector Index")
+        print("="*70)
+        print(f"Data source:      {args.data}")
+        print(f"Output directory: {args.output}")
+        print("="*70 + "\n")
+        
+        indexer = VectorIndexer(index_dir=args.output)
+        indexer.build_index(args.data)
+        
+        print("\n" + "="*70)
+        print("✅ Index Built Successfully!")
+        print("="*70)
+        print(f"Total documents: {len(indexer.documents)}")
+        print(f"Index size: {indexer.get_index_size()}")
+        print("="*70 + "\n")
+    
+    elif args.command == 'query':
+        print("\n" + "="*70)
+        print("🔍 Querying RAG System")
+        print("="*70)
+        print(f"Query: {args.query}")
+        print(f"Top-K: {args.top_k}")
+        print("="*70 + "\n")
+        
+        # Load indexer
+        indexer = VectorIndexer(index_dir=args.index_dir)
+        indexer.load_index()
+        
+        # Initialize pipeline
+        os.environ['MODEL_PATH'] = args.model
+        rag_pipeline = RAGPipeline(indexer)
+        
+        # Query
+        result = rag_pipeline.answer_query(args.query, top_k=args.top_k)
+        
+        print("\n📝 Answer:")
+        print("-" * 70)
+        print(result['answer'])
+        print("-" * 70)
+        
+        print("\n📚 Citations:")
+        for i, citation in enumerate(result['citations'], 1):
+            print(f"  [{i}] {citation['doc_id']}: {citation['title']}")
+        
+        print("\n📄 Retrieved Context (first 200 chars each):")
+        for i, context in enumerate(result['retrieved_context'], 1):
+            print(f"  [{i}] {context[:200]}...")
+        print()
+    
+    elif args.command == 'serve':
+        print("\n" + "="*70)
+        print("🚀 Starting GenAI RAG Server")
+        print("="*70)
+        print(f"Host: {args.host}")
+        print(f"Port: {args.port}")
+        print(f"URL:  http://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}")
+        print("="*70 + "\n")
+        
+        uvicorn.run(
+            "main:app",
+            host=args.host,
+            port=args.port,
+            log_level="info",
+            reload=args.reload
+        )
+    
+    elif args.command == 'evaluate':
+        print("\n" + "="*70)
+        print("📊 Running Evaluation")
+        print("="*70)
+        print(f"API URL: {args.url}")
+        print("="*70 + "\n")
+        
+        # Import and run evaluation
+        sys.path.insert(0, 'tests')
+        from tests.evaluate_rag import evaluate_system
+        evaluate_system(args.url)
+    
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    # Check if CLI arguments provided
+    if len(sys.argv) > 1:
+        run_cli()
+    else:
+        # Default: start web server
+        from utils.config import config
+
+        uvicorn.run(
+            "main:app",
+            host=config.HOST,
+            port=config.PORT,
+            log_level=config.LOG_LEVEL
+        )

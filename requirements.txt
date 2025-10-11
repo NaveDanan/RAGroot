@@ -1,0 +1,47 @@
+# Web framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+aiohttp==3.9.1
+python-dotenv==1.0.0
+
+# Data processing
+pydantic==2.5.3
+numpy==1.24.3
+
+# Vector search and embeddings
+faiss-cpu==1.7.4
+sentence-transformers==2.5.1
+
+# Adapters for SPECTER2 models
+adapters==1.2.0
+adapter-transformers>=4.0.0
+
+# Local LLM inference
+llama-cpp-python>=0.3.16
+
+# Optional: If GPU available, use this instead:
+# llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
+
+# Image generation with Hugging Face
+transformers==4.51.3
+transformers>=4.40.0
+
+# PyTorch with CUDA support (install from PyTorch index)
+# Install with: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+# Or for CPU-only: pip install torch torchvision
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Image generation dependencies
+pillow>=10.0.0
+accelerate>=0.20.0
+diffusers>=0.27.0
+compel>=2.2.1
+
+# Additional dependencies
+huggingface-hub[hf-xet]>=0.35.3
+peft>=0.17.1
+protobuf>=6.32.1
+sentencepiece>=0.2.1
+propcache==0.4.1
