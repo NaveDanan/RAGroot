@@ -66,13 +66,13 @@ uv run python main.py serve --help
 ### 4. Docker Build
 ```bash
 # Build Docker image
-docker build -t yourname/genai-app:latest .
+docker build -t navedanan/genai-app:latest .
 
 # Check image size (should be 4-6 GB)
 docker images | grep genai-app
 
 # Inspect layers
-docker history yourname/genai-app:latest
+docker history navedanan/genai-app:latest
 ```
 - [ ] Build completes without errors
 - [ ] Image size is reasonable (~5GB)
@@ -86,7 +86,7 @@ docker history yourname/genai-app:latest
 docker run --rm -p 8080:8080 \
   -e DATA_PATH=/data/arxiv_2.9k.jsonl \
   -v $(pwd)/data/arxiv_2.9k.jsonl:/data/arxiv_2.9k.jsonl:ro \
-  yourname/genai-app:latest
+  navedanan/genai-app:latest
 
 # In another terminal, test endpoints
 curl http://localhost:8080/health
@@ -263,7 +263,7 @@ uv run python main.py evaluate
 # Test with non-existent dataset
 docker run --rm -p 8080:8080 \
   -e DATA_PATH=/data/missing.jsonl \
-  yourname/genai-app:latest
+  navedanan/genai-app:latest
 
 # Should see helpful error message
 ```
@@ -298,7 +298,7 @@ docker run --rm -p 8080:8080 \
 docker run --rm -p 8080:8080 \
   -e DATA_PATH=/data/arxiv_2.9k.jsonl \
   -v $(pwd)/data/arxiv_2.9k.jsonl:/data/arxiv_2.9k.jsonl:ro \
-  yourname/genai-app:latest
+  navedanan/genai-app:latest
 
 # Should:
 # 1. Start without errors
@@ -347,7 +347,7 @@ docker run -p 8081:8080 ...
 docker system prune -a
 
 # Rebuild with no cache
-docker build --no-cache -t yourname/genai-app:latest .
+docker build --no-cache -t navedanan/genai-app:latest .
 ```
 
 ### Import Errors

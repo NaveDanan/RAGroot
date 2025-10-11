@@ -38,7 +38,7 @@ The checker prints current values, masks secrets, confirms file paths, and warns
 |----------|---------|---------|
 | `DATA_PATH` | `data/arxiv_2.9k.jsonl` | JSONL corpus used for indexing |
 | `INDEX_DIR` | `index` | Location for FAISS index, metadata, hash cache |
-| `MODEL_PATH` | `models/llama-model.gguf` | Phi-3 Mini (GGUF) inference file |
+| `MODEL_PATH` | `models/llama-model.gguf` | Llama-3.2-3B (GGUF) inference file |
 
 > Docker deployments swap these for container mounts, e.g. `/data`, `/index`, `/models`.
 

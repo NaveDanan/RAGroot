@@ -320,7 +320,7 @@ python main.py query "test query" --top-k 3
 python main.py serve --host 0.0.0.0 --port 8080
 
 # Or use Docker for production
-docker run -p 8080:8080 yourname/genai-app:latest
+docker run -p 8080:8080 navedanan/genai-app:latest
 ```
 
 ### 4. Testing & Validation

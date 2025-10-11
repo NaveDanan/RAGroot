@@ -168,7 +168,7 @@ def generate_dataset(output_file, num_papers=100):
     print(f"   docker run -p 8080:8080 \\")
     print(f"     -v $(pwd)/{output_file}:/data/{output_file}:ro \\")
     print(f"     -e DATA_PATH=/data/{output_file} \\")
-    print(f"     yourname/genai-app:latest")
+    print(f"     navedanan/genai-app:latest")
 
 def main():
     import argparse

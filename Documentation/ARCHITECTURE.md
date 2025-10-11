@@ -27,7 +27,7 @@ Comprehensive overview of the 2025 release of the GenAI RAG application, includi
 │  │   Vector Indexer            │◄────►│   RAG Pipeline         │  │
 │  │   (indexer.py)              │      │   (retriever.py)        │  │
 │  │   • JSONL streaming         │      │   • LaTeX-aware prompts │  │
-│  │   • all-mpnet-base-v2       │      │   • Phi-3 Mini (GGUF)   │  │
+│  │   • all-mpnet-base-v2       │      │   • Llama-3.2-3B (GGUF)   │  │
 │  │     embeddings (768-dim)    │      │   • Strict anti-halluc. │  │
 │  │   • FAISS + semantic rerank │      │   • SSE streaming       │  │
 │  │   • LaTeX preprocessing     │      └───────────┬────────────┘  │
@@ -89,7 +89,7 @@ Comprehensive overview of the 2025 release of the GenAI RAG application, includi
 ### Retrieval & Generation (`retriever.py`)
 - Tokenizes incoming queries, obtains embeddings, calls the indexer, and builds deterministic prompts.
 - Enforces anti-hallucination guardrails: citations mandatory, no mixing of documents, structured answer template (Topic → Approach → Technical Details → Results).
-- Runs Phi-3 Mini 4K Instruct (Q4 quantized) through `llama.cpp` bindings with tuned generation parameters (`temperature=0.3`, `top_p=0.85`, `max_tokens=600`, `repeat_penalty=1.1`).
+- Runs Llama-3.2-3B-Instruct-Q4_K_M through `llama.cpp` bindings with tuned generation parameters (`temperature=0.3`, `top_p=0.85`, `max_tokens=600`, `repeat_penalty=1.1`).
 - Supports streaming via Server-Sent Events, forwarding partial generations to the UI for better perceived latency.
 
 ### Image Generation (`image_gen.py`)
@@ -129,7 +129,7 @@ Typical performance (2.9k docs): ~3–4 minutes CPU indexing, peak memory <2.5�
 3. **Query preprocessing** – run through LaTeX handler, embed via `all-mpnet-base-v2`.
 4. **Semantic retrieval + rerank** – gather `top_k * multiplier`, rescore, keep highest quality.
 5. **Prompt assembly** – apply strict template, include citations, highlight constraints.
-6. **LLM inference** – Phi-3 Mini generates answer; SSE channel streams tokens if requested.
+6. **LLM inference** – Llama-3.2-3B generates answer; SSE channel streams tokens if requested.
 7. **Optional image generation** – convert answer into visual prompt, call selected provider, embed base64 image URL.
 8. **Response packaging** – return answer, citations, context passages, latency metrics, and image metadata.
 

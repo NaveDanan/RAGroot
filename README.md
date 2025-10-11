@@ -7,7 +7,7 @@ A fully self-contained Retrieval-Augmented Generation (RAG) system for querying 
 - **Fully On-Premise**: All core components run locally inside Docker
 - **Offline Operation**: All embedding models can be stored locally for air-gapped deployment
 - **Vector Search**: FAISS-based semantic search with sentence-transformers
-- **Local LLM**: Phi-3 Mini 4K Instruct (Q4 quantized) for efficient CPU inference
+- **Local LLM**: Llama-3.2-3B-Instruct-Q4_K_M for efficient CPU inference
 - **Web UI**: Clean, modern interface for querying and viewing results
 - **REST API**: `/answer` and `/stream` endpoints for programmatic access
 - **Smart Indexing**: Automatic detection of dataset changes with hash-based caching
@@ -36,7 +36,7 @@ A fully self-contained Retrieval-Augmented Generation (RAG) system for querying 
        │
        ▼
 ┌─────────────┐      ┌──────────────┐
-│  Retriever  │ ───▶ │   Local LLM  │ (Phi-3 Mini)
+│  Retriever  │ ───▶ │   Local LLM  │ (Llama-3.2-3B)
 │  (RAG)      │      │  (llama.cpp) │
 └──────┬──────┘      └──────────────┘
        │
@@ -126,7 +126,7 @@ No configuration needed! It works out of the box.
 docker run --rm -p 8080:8080 \
   -e DATA_PATH=/data/arxiv_2.9k.jsonl \
   -v $(pwd)/arxiv_2.9k.jsonl:/data/arxiv_2.9k.jsonl:ro \
-  yourname/genai-app:latest
+  navedanan/genai-app:latest
 ```
 
 #### Option 2: OpenAI DALL-E
@@ -138,7 +138,7 @@ docker run --rm -p 8080:8080 \
   -e IMAGE_API_PROVIDER=openai \
   -e IMAGE_API_KEY=sk-your-api-key-here \
   -v $(pwd)/arxiv_2.9k.jsonl:/data/arxiv_2.9k.jsonl:ro \
-  yourname/genai-app:latest
+  navedanan/genai-app:latest
 ```
 
 ## 📡 API Endpoints
@@ -253,7 +253,7 @@ The system automatically detects dataset changes:
 docker run --rm -p 8080:8080 \
   -e DATA_PATH=/data/new_dataset.jsonl \
   -v $(pwd)/new_dataset.jsonl:/data/new_dataset.jsonl:ro \
-  yourname/genai-app:latest
+  navedanan/genai-app:latest
 ```
 
 2. The system will:
@@ -283,7 +283,7 @@ RUN pip install llama-cpp-python --extra-index-url https://abetlen.github.io/lla
 docker run --rm --gpus all -p 8080:8080 \
   -e DATA_PATH=/data/arxiv_2.9k.jsonl \
   -v $(pwd)/arxiv_2.9k.jsonl:/data/arxiv_2.9k.jsonl:ro \
-  yourname/genai-app:latest
+  navedanan/genai-app:latest
 ```
 
 3. Modify `retriever.py` to set `n_gpu_layers`:
@@ -328,7 +328,7 @@ curl -X POST http://localhost:8080/answer \
 - **Speed**: ~14,000 sentences/sec on CPU
 
 ### LLM Model
-- **Model**: Phi-3 Mini 4K Instruct (Q4)
+- **Model**: Llama-3.2-3B-Instruct-Q4_K_M
 - **Size**: ~2.4GB
 - **Context**: 4K tokens
 - **Speed**: ~10-20 tokens/sec on CPU (4 cores)
@@ -367,7 +367,7 @@ docker run --rm -p 8081:8080 ...
 docker run --rm -p 8080:8080 \
   -e DATA_PATH=/data/arxiv_2.9k.jsonl \
   -v /absolute/path/to/arxiv_2.9k.jsonl:/data/arxiv_2.9k.jsonl:ro \
-  yourname/genai-app:latest
+  navedanan/genai-app:latest
 ```
 
 ## � Documentation
