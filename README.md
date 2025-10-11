@@ -94,15 +94,59 @@ http://127.0.0.1:8080
 ## 📁 Project Structure
 
 ```
-genai-rag/
-├── Dockerfile              # Docker configuration
-├── requirements.txt        # Python dependencies
-├── README.md              # This file
-├── main.py                # FastAPI application
-├── indexer.py             # Vector indexing (FAISS)
-├── retriever.py           # RAG pipeline with LLM
-├── image_gen.py           # Image generation (bonus)
-└── index.html             # Web UI
+RAG_PDF/
+├── Dockerfile                      # Docker configuration
+├── docker-compose.yml              # Docker Compose configuration
+├── requirements.txt                # Python dependencies
+├── pyproject.toml                  # Python project configuration
+├── README.md                       # This file
+├── DEPLOYMENT_CHECKLIST.md         # Deployment checklist
+├── main.py                         # FastAPI application
+├── data/
+│   └── arxiv_2.9k.jsonl           # Dataset file
+├── Documentation/
+│   ├── ARCHITECTURE.md             # System design and components
+│   ├── CLI_GUIDE.md                # Command-line interface guide
+│   ├── CONFIGURATION.md            # Configuration options
+│   ├── DOCKER_DEPLOYMENT.md        # Docker deployment guide
+│   ├── IMAGE_GENERATION.md         # Image generation setup
+│   ├── LATEX_UTILS.md              # LaTeX utilities documentation
+│   ├── OFFLINE_SETUP.md            # Offline/air-gapped deployment
+│   └── QUICKSTART.md               # Quick start guide
+├── index/
+│   ├── dataset_hash.txt            # Dataset hash for change detection
+│   ├── embeddings.npy              # Cached embeddings
+│   └── faiss.index                 # FAISS vector index
+├── models/
+│   ├── Llama-3.2-3B-Instruct-Q4_K_M.gguf  # Main LLM model
+│   ├── llama-model.gguf            # Symlink to active LLM
+│   ├── Qwen3-4B-Instruct-2507-Q4_K_M.gguf # Alternative LLM
+│   ├── embeddings/                 # Embedding models cache
+│   ├── sdxl-turbo/                 # SDXL Turbo model
+│   └── stable-diffusion-3.5-medium/ # SD 3.5 Medium model
+├── static/
+│   ├── index.html                  # Web UI
+│   └── generated_images/           # Generated images cache
+├── tests/
+│   ├── evaluate_rag.py             # RAG evaluation tests
+│   ├── test_api.py                 # API endpoint tests
+│   ├── test_image_gen.py           # Image generation tests
+│   ├── test_sd35_local.py          # SD 3.5 local tests
+│   └── test_sd35.py                # SD 3.5 tests
+├── tools/
+│   ├── docker_build.ps1            # Docker build script (PowerShell)
+│   ├── docker_build.sh             # Docker build script (Bash)
+│   ├── download_models.py          # Model download utility
+│   ├── sample_generator.py         # Sample data generator
+│   └── validate_offline.py         # Offline setup validator
+└── utils/
+    ├── __init__.py                 # Utils package init
+    ├── config.py                   # Configuration management
+    ├── encoders.py                 # Text encoding utilities
+    ├── image_gen.py                # Image generation utilities
+    ├── indexer.py                  # Vector indexing (FAISS)
+    ├── latex_utils.py              # LaTeX processing utilities
+    └── retriever.py                # RAG pipeline with LLM
 ```
 
 ## 🔧 Configuration
