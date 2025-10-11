@@ -68,6 +68,7 @@ class QueryRequest(BaseModel):
     query: str
     generate_image: bool = False
     top_k: int = 5
+    force_cpu: bool = False
 
 class Citation(BaseModel):
     doc_id: str
@@ -190,47 +191,83 @@ async def answer_query(request: QueryRequest):
         )
         retrieval_time = time.time() - retrieval_start
         
-        # Generate image if requested
-        image_url = None
-        image_time = 0
-        if request.generate_image:
-            import torch
-            from utils.config import config
-            # Check if CUDA is available
-            if config.IMAGE_API_PROVIDER == "local" and (not torch.cuda.is_available() or config.FORCE_CPU):
-                logger.warning("Image generation skipped: CUDA not available or FORCE_CPU is set. Image generation requires GPU for local provider.")
-            else:
-                logger.info("Generating image...")
-                image_start = time.time()
-                image_url = await image_generator.generate_image(
-                    prompt=result["answer"],
-                    query=request.query
-                )
-                image_time = time.time() - image_start
-        
         total_time = time.time() - start_time
         
-        # Build performance metrics
+        # Build performance metrics (without image generation time)
         performance_metrics = {
             "total_time_ms": round(total_time * 1000, 2),
             "retrieval_time_ms": round(retrieval_time * 1000, 2),
-            "image_generation_time_ms": round(image_time * 1000, 2) if image_url else 0,
             "documents_retrieved": len(result["citations"]),
             "answer_length_words": len(result["answer"].split())
         }
         
-        logger.info(f"Query completed in {total_time:.2f}s (retrieval: {retrieval_time:.2f}s, image: {image_time:.2f}s)")
+        logger.info(f"Query completed in {total_time:.2f}s (retrieval: {retrieval_time:.2f}s)")
         
+        # Return answer immediately - image will be generated separately
         return QueryResponse(
             answer=result["answer"],
             citations=result["citations"],
             retrieved_context=result["retrieved_context"],
-            image_url=image_url,
+            image_url=None,  # Image URL will be fetched separately
             performance_metrics=performance_metrics
         )
     
     except Exception as e:
         logger.error(f"Error processing query: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ImageRequest(BaseModel):
+    prompt: str
+    query: Optional[str] = None
+    image_provider: Optional[str] = None
+    api_key: Optional[str] = None
+    force_cpu: bool = False
+
+@app.post("/generate-image")
+async def generate_image_endpoint(request: ImageRequest):
+    """Generate an image independently from the query."""
+    if not image_generator:
+        raise HTTPException(status_code=503, detail="Image generator not initialized")
+    
+    try:
+        import torch
+        from utils.config import config
+        
+        # Use runtime override for image provider if specified
+        provider = request.image_provider or config.IMAGE_API_PROVIDER
+        api_key = request.api_key or config.IMAGE_API_KEY
+        force_cpu = request.force_cpu
+        
+        # Check if CUDA is available for local generation
+        if provider == "local" and (not torch.cuda.is_available() or force_cpu):
+            logger.warning("Image generation skipped: CUDA not available or Force CPU is enabled. Image generation requires GPU for local provider.")
+            return {"image_url": None, "error": "GPU required for local image generation. Try OpenAI or Pollinations provider instead."}
+        
+        # Validate API key for OpenAI
+        if provider == "openai" and not api_key:
+            logger.warning("Image generation skipped: OpenAI API key not provided")
+            return {"image_url": None, "error": "OpenAI API key required for OpenAI provider"}
+        
+        logger.info(f"Generating image with provider: {provider}")
+        start_time = time.time()
+        
+        image_url = await image_generator.generate_image(
+            prompt=request.prompt,
+            query=request.query,
+            provider_override=provider,
+            api_key_override=api_key
+        )
+        
+        image_time = time.time() - start_time
+        logger.info(f"Image generated in {image_time:.2f}s")
+        
+        return {
+            "image_url": image_url,
+            "generation_time_ms": round(image_time * 1000, 2)
+        }
+    
+    except Exception as e:
+        logger.error(f"Error generating image: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/stream")

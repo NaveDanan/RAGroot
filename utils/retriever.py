@@ -91,15 +91,16 @@ class RAGPipeline:
 CRITICAL REQUIREMENTS:
 1. **Be EXTREMELY SPECIFIC**: Mention exact methods, algorithms, frameworks, architectures, and technical contributions
 2. **Include KEY DETAILS**: Datasets used, metrics reported, mathematical formulations, experimental setups
-3. **CITE PRECISELY**: Reference specific papers using [1], [2], etc. for EVERY factual claim you
-4. **STRUCTURED FORMAT**: Use this structure:
-   - Main Topic/Question: [One sentence summary] the date is stored in the "id" field as YYMM.string use only the first 4 digit for the date(e.g. "id": "2509.21240v1" -> 2509 -> Sep 2025)
+3. **CITE PRECISELY**: Reference specific papers using [1], [2], etc. for EVERY factual claim you make
+4. **STRUCTURED FORMAT**: Use this structure
+   - Main Topic/Question: [One sentence summary of the answer]
    - Specific Approaches: [Detailed methodology from each relevant paper]
    - Key Technical Details: [Algorithms, models, techniques with specifics]
    - Results/Contributions: [Quantitative results, innovations, impact]
 5. **NO GENERALIZATIONS**: Avoid vague statements like "various approaches" or "recent methods"
 6. **EXPLICIT CITATIONS**: Every factual claim must have a citation [N]
 7. **COMPLETE COVERAGE**: If multiple papers are relevant, explain how they differ or relate
+8. **DO NOT ADD REFERENCES SECTION**: NEVER include a "References:" section at the end - citations are handled separately
 
 If the query asks about:
 - A specific paper: Describe its EXACT methodology, contributions, and results in detail
@@ -117,7 +118,9 @@ If the query asks about:
 ---DETAILED TECHNICAL ANSWER---
 Based on the provided research papers:
 
-**Main Topic:**"""
+**Main Topic:**
+
+IMPORTANT: Your answer should contain ONLY the explanation and inline citations [N]. DO NOT include a "References:" section, bibliography, or list of references at the end. The references will be displayed separately in the Citations card."""
         
         return prompt
     
@@ -151,7 +154,7 @@ Based on the provided research papers:
             temperature=cfg.TEMPERATURE,
             top_p=cfg.TOP_P,
             repeat_penalty=cfg.REPEAT_PENALTY,
-            stop=["---QUESTION---", "---ANSWER---", "User Question:"],
+            stop=["---QUESTION---", "---ANSWER---", "User Question:", "References:", "\nReferences:", "\n\nReferences:"],
             echo=False
         )
         
@@ -220,7 +223,7 @@ Based on the provided research papers:
             max_tokens=512,
             temperature=config.TEMPERATURE,
             top_p=config.TOP_P,
-            stop=["User Question:", "Retrieved Documents:"],
+            stop=["User Question:", "Retrieved Documents:", "References:", "\nReferences:", "\n\nReferences:"],
             stream=True
         ):
             token = chunk['choices'][0]['text']

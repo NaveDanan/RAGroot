@@ -11,14 +11,14 @@ A fully self-contained Retrieval-Augmented Generation (RAG) system for querying 
 - **Web UI**: Clean, modern interface for querying and viewing results
 - **REST API**: `/answer` and `/stream` endpoints for programmatic access
 - **Smart Indexing**: Automatic detection of dataset changes with hash-based caching
-- **Bonus: Image Generation**: Optional integration with Pollinations.ai (free) or OpenAI DALL-E
+- **Bonus: Image Generation**: Optional integration with local model (SDXL), Pollinations.ai (free), or OpenAI DALL-E
 
 ## 📋 Requirements
 
-- **Docker** (with at least 8GB RAM allocated)
+- **Docker** (with at least 4GB RAM allocated)
 - **CPU**: Works on CPU (4+ cores recommended)
 - **GPU**: Optional, for faster inference
-- **Disk Space**: ~5GB for Docker image (includes models)
+- **Disk Space**: ~33GB for Docker image (includes models)
 
 ## 🏗️ Architecture
 

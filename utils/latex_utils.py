@@ -366,11 +366,15 @@ class LaTeXMathHandler:
         return sorted(list(variables))
 
 
+# Global singleton handler for embedding preprocessing (cached for performance)
+_global_embedding_handler = None
+
 def preprocess_for_embedding(text: str) -> str:
     """
     Preprocess text for embedding generation.
     Optimized for semantic search and retrieval.
     Uses text equivalents instead of Unicode for better embedding quality.
+    Uses cached singleton handler for better performance.
     
     Args:
         text: Raw text with LaTeX math
@@ -378,8 +382,10 @@ def preprocess_for_embedding(text: str) -> str:
     Returns:
         Processed text suitable for embedding
     """
-    handler = LaTeXMathHandler(preserve_structure=True, use_unicode=False)
-    return handler.process_text(text)
+    global _global_embedding_handler
+    if _global_embedding_handler is None:
+        _global_embedding_handler = LaTeXMathHandler(preserve_structure=True, use_unicode=False)
+    return _global_embedding_handler.process_text(text)
 
 
 def preprocess_for_display(text: str) -> str:

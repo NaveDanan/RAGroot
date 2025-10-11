@@ -107,17 +107,35 @@ To fix this:
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-    async def generate_image(self, prompt: str, query: Optional[str] = None) -> Optional[str]:
-        """Generate an image based on the answer/query."""
+    async def generate_image(self, prompt: str, query: Optional[str] = None, 
+                           provider_override: Optional[str] = None,
+                           api_key_override: Optional[str] = None) -> Optional[str]:
+        """Generate an image based on the answer/query.
         
-        if self.api_provider == "local":
+        Args:
+            prompt: The text prompt for image generation
+            query: Optional original query for context
+            provider_override: Override the configured image provider (local, openai, pollinations)
+            api_key_override: Override the configured API key (for OpenAI)
+        """
+        
+        # Use overrides if provided, otherwise use configured values
+        provider = provider_override if provider_override is not None else self.api_provider
+        api_key = api_key_override if api_key_override is not None else self.api_key
+        
+        logger.info(f"Generating image with provider: {provider}")
+        
+        if provider == "local":
             return await self._generate_local(prompt, query)
-        elif self.api_provider == "pollinations":
+        elif provider == "pollinations":
             return await self._generate_pollinations(prompt, query)
-        elif self.api_provider == "openai" and self.api_key:
-            return await self._generate_openai(prompt)
+        elif provider == "openai":
+            if not api_key:
+                logger.error("OpenAI provider selected but no API key provided")
+                return None
+            return await self._generate_openai(prompt, api_key)
         else:
-            logger.warning("Image generation not configured properly")
+            logger.warning(f"Unknown image provider: {provider}")
             return None
 
     async def _generate_local(self, prompt: str, query: Optional[str] = None) -> Optional[str]:
@@ -198,11 +216,16 @@ To fix this:
             logger.error(f"Pollinations.ai image generation error: {e}")
             return None
     
-    async def _generate_openai(self, prompt: str) -> Optional[str]:
-        """Generate image using OpenAI DALL-E."""
+    async def _generate_openai(self, prompt: str, api_key: str) -> Optional[str]:
+        """Generate image using OpenAI DALL-E.
+        
+        Args:
+            prompt: The text prompt for image generation
+            api_key: OpenAI API key (passed as parameter to support runtime override)
+        """
         try:
             headers = {
-                "Authorization": f"Bearer {self.api_key}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             }
             
@@ -226,7 +249,8 @@ To fix this:
                         logger.info("OpenAI image generated successfully")
                         return image_url
                     else:
-                        logger.error(f"OpenAI API error: {response.status}")
+                        error_text = await response.text()
+                        logger.error(f"OpenAI API error: {response.status} - {error_text}")
                         return None
         
         except Exception as e:

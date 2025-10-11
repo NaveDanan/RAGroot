@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GenAI RAG Application</title>
+    <title>Academic Research Assistant | AI-Powered RAG</title>
+    <meta name="description" content="AI-powered academic research assistant using RAG to answer questions about research papers">
     <!-- Marked.js for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Font Awesome for modern icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- MathJax for LaTeX rendering -->
     <script>
         MathJax = {
@@ -22,6 +25,30 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
     <style>
+        :root {
+            --primary-color: #667eea;
+            --primary-dark: #5568d3;
+            --secondary-color: #764ba2;
+            --accent-color: #f093fb;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --bg-tertiary: #f3f4f6;
+            --border-color: #e5e7eb;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -29,40 +56,100 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
         }
         
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl), 0 0 0 1px rgba(0,0,0,0.05);
             overflow: hidden;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
+            padding: 40px 30px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.05)"/></svg>');
+            opacity: 0.1;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 1;
         }
         
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        
+        .header h1 i {
+            margin-right: 10px;
         }
         
         .header p {
             font-size: 1.1em;
-            opacity: 0.9;
+            opacity: 0.95;
+            font-weight: 400;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            .header p {
+                font-size: 1em;
+            }
         }
         
         .content {
-            padding: 30px;
+            padding: 40px;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
         }
         
         .query-section {
@@ -71,60 +158,118 @@
         
         .input-group {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+            }
+        }
+        
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 18px;
         }
         
         #queryInput {
-            flex: 1;
-            padding: 15px 20px;
+            width: 100%;
+            padding: 16px 20px 16px 50px;
             font-size: 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
             outline: none;
-            transition: border-color 0.3s;
+            transition: var(--transition);
+            background: var(--bg-primary);
+            font-family: inherit;
         }
         
         #queryInput:focus {
-            border-color: #667eea;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        #queryInput::placeholder {
+            color: var(--text-secondary);
         }
         
         button {
-            padding: 15px 30px;
+            padding: 16px 32px;
             font-size: 16px;
             font-weight: 600;
             border: none;
-            border-radius: 10px;
+            border-radius: var(--radius-md);
             cursor: pointer;
-            transition: all 0.3s;
+            transition: var(--transition);
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
         }
         
         #submitBtn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
+            box-shadow: var(--shadow-md);
         }
         
-        #submitBtn:hover {
+        #submitBtn:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        #submitBtn:active:not(:disabled) {
+            transform: translateY(0);
         }
         
         #submitBtn:disabled {
-            background: #ccc;
+            background: var(--text-secondary);
             cursor: not-allowed;
             transform: none;
+            opacity: 0.6;
         }
         
         .options {
             display: flex;
             align-items: center;
-            gap: 20px;
-            padding: 10px;
-            background: #f5f5f5;
-            border-radius: 10px;
+            gap: 24px;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        
+        @media (max-width: 768px) {
+            .options {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
         }
         
         .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .checkbox-group label {
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: 8px;
@@ -134,10 +279,57 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+        
+        .select-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .select-wrapper label {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        .select-wrapper select {
+            padding: 8px 32px 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-primary);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: var(--transition);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+        
+        .select-wrapper select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
         .results-section {
             display: none;
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .results-section.visible {
@@ -145,22 +337,27 @@
         }
         
         .answer-box {
-            background: #f9f9f9;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--primary-color);
+            border-radius: var(--radius-md);
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
         }
         
         .answer-box h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.3em;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .answer-text {
             line-height: 1.8;
-            color: #333;
+            color: var(--text-primary);
             font-size: 1.05em;
         }
         
@@ -289,87 +486,225 @@
             margin: 15px 0;
         }
         
-        .citations {
-            background: #fff;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
+        .collapsible-section {
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0;
             margin-bottom: 20px;
+            overflow: hidden;
+            transition: var(--transition);
         }
         
-        .citations h3 {
-            color: #764ba2;
+        .collapsible-section:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            cursor: pointer;
+            user-select: none;
+            transition: var(--transition);
+        }
+        
+        .section-header:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .section-title i {
+            color: var(--secondary-color);
+        }
+        
+        .toggle-icon {
+            color: var(--text-secondary);
+            transition: transform 0.3s ease;
+            font-size: 18px;
+        }
+        
+        .toggle-icon.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+        
+        .section-content.expanded {
+            max-height: 2000px;
+        }
+        
+        .section-body {
+            padding: 0 24px 24px 24px;
+        }
+        
+        .citations h3, .context-section h3 {
+            color: var(--secondary-color);
             margin-bottom: 15px;
             font-size: 1.3em;
         }
         
         .citation-item {
-            padding: 12px;
-            margin-bottom: 10px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            border-left: 3px solid #764ba2;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--secondary-color);
+            transition: var(--transition);
+        }
+        
+        .citation-item:hover {
+            background: var(--bg-tertiary);
+            transform: translateX(4px);
         }
         
         .citation-id {
             font-weight: 600;
-            color: #764ba2;
-            margin-bottom: 5px;
+            color: var(--secondary-color);
+            margin-bottom: 6px;
+            font-size: 14px;
         }
         
         .citation-title {
-            color: #555;
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 4px;
         }
         
-        .context-section {
-            background: #fff;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .context-section h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.3em;
+        .citation-authors {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin-top: 4px;
         }
         
         .context-item {
-            padding: 15px;
-            margin-bottom: 10px;
-            background: #f9f9f9;
-            border-radius: 8px;
-            line-height: 1.6;
-            color: #555;
-            border-left: 3px solid #667eea;
+            padding: 18px;
+            margin-bottom: 12px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            line-height: 1.7;
+            color: var(--text-primary);
+            border-left: 4px solid var(--primary-color);
+            transition: var(--transition);
+        }
+        
+        .context-item:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .context-item strong {
+            color: var(--primary-color);
+            font-weight: 600;
         }
         
         .image-section {
             text-align: center;
+            margin-bottom: 24px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 24px;
+        }
+        
+        .image-section h3 {
             margin-bottom: 20px;
+            color: var(--primary-color);
+            font-size: 1.3em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
         
         .image-section img {
             max-width: 100%;
             height: auto;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            transition: var(--transition);
         }
         
-        .loading {
-            text-align: center;
-            padding: 40px;
+        .image-section img:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-xl);
         }
         
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
+        /* Loading States */
+        .loading-container {
+            display: none;
+            margin-bottom: 30px;
+        }
+        
+        .loading-container.visible {
+            display: block;
+        }
+        
+        .loading-card {
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 16px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .loading-card.completed {
+            border-color: var(--success-color);
+            background: rgba(16, 185, 129, 0.05);
+            animation: none;
+        }
+        
+        .loading-card.error {
+            border-color: var(--error-color);
+            background: rgba(239, 68, 68, 0.05);
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(102, 126, 234, 0);
+            }
+        }
+        
+        .loading-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .loading-icon {
+            font-size: 20px;
+            color: var(--primary-color);
+        }
+        
+        .loading-icon.spinning {
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+        }
+        
+        .loading-icon.completed {
+            color: var(--success-color);
+        }
+        
+        .loading-icon.error {
+            color: var(--error-color);
         }
         
         @keyframes spin {
@@ -377,67 +712,178 @@
             100% { transform: rotate(360deg); }
         }
         
+        .loading-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+        }
+        
+        .loading-status {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .loading-status.completed {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+        
+        .loading-status.error {
+            color: var(--error-color);
+            font-weight: 500;
+        }
+        
+        .loading-progress {
+            margin-top: 12px;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+        
+        .progress-fill.completed {
+            animation: none;
+            background: var(--success-color);
+        }
+        
         .error {
-            background: #fee;
-            border-left: 4px solid #e53e3e;
-            color: #c53030;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid var(--error-color);
+            color: var(--error-color);
+            padding: 20px 24px;
+            border-radius: var(--radius-md);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: shake 0.5s ease;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .error i {
+            font-size: 20px;
         }
         
         .stats {
-            display: flex;
-            justify-content: space-around;
-            padding: 20px;
-            background: #f5f5f5;
-            border-radius: 10px;
-            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 24px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            margin-top: 24px;
+            border: 1px solid var(--border-color);
         }
         
         .stat-item {
             text-align: center;
+            padding: 16px;
+            background: var(--bg-primary);
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            cursor: default;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .stat-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: var(--primary-color);
         }
         
         .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #667eea;
+            font-size: 2.2em;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
         }
         
         .stat-label {
-            color: #666;
-            margin-top: 5px;
+            color: var(--text-secondary);
+            font-size: 0.95em;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔬 Academic Research Assistant</h1>
-            <p>Ask questions about academic papers powered by AI</p>
+            <div class="header-content">
+                <h1><i class="fas fa-microscope"></i> Academic Research Assistant</h1>
+                <p>Ask questions about academic papers powered by AI</p>
+            </div>
         </div>
         
         <div class="content">
             <div class="query-section">
                 <div class="input-group">
-                    <input 
-                        type="text" 
-                        id="queryInput" 
-                        placeholder="Ask a question about research papers..."
-                        onkeypress="handleKeyPress(event)"
-                    >
-                    <button id="submitBtn" onclick="submitQuery()">Search</button>
+                    <div class="input-wrapper">
+                        <i class="fas fa-search input-icon"></i>
+                        <input 
+                            type="text" 
+                            id="queryInput" 
+                            placeholder="Ask a question about research papers..."
+                            onkeypress="handleKeyPress(event)"
+                            aria-label="Search query"
+                        >
+                    </div>
+                    <button id="submitBtn" onclick="submitQuery()" aria-label="Submit query">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Search</span>
+                    </button>
                 </div>
                 
                 <div class="options">
                     <div class="checkbox-group">
                         <input type="checkbox" id="imageToggle">
-                        <label for="imageToggle">Generate image</label>
+                        <label for="imageToggle">
+                            <i class="fas fa-image"></i>
+                            Generate image
+                        </label>
                     </div>
                     <div class="checkbox-group">
-                        <label for="topK">Results:</label>
-                        <select id="topK" style="padding: 5px; border-radius: 5px;">
+                        <input type="checkbox" id="forceCpuToggle">
+                        <label for="forceCpuToggle" title="Force CPU inference for testing. Note: If local image provider is selected, image generation will not work (only external APIs)">
+                            <i class="fas fa-microchip"></i>
+                            Force CPU
+                        </label>
+                        <span style="font-size: 12px; color: var(--text-secondary); margin-left: 5px;" title="Use CPU for inference testing. Local image generation requires GPU and will not work with CPU mode.">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                    </div>
+                    <div class="select-wrapper">
+                        <label for="topK"><i class="fas fa-list-ol"></i> Results:</label>
+                        <select id="topK" aria-label="Number of results">
                             <option value="1">1</option>
                             <option value="2">2</option>
                             <option value="3" selected>3</option>
@@ -451,40 +897,114 @@
                         </select>
                     </div>
                 </div>
+                
+                <div class="image-provider-section" style="margin-top: 16px; padding: 16px 20px; background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
+                        <div class="select-wrapper">
+                            <label for="imageProvider"><i class="fas fa-palette"></i> Image Provider:</label>
+                            <select id="imageProvider" aria-label="Image generation provider" onchange="toggleApiKeyInput()">
+                                <option value="local">Local (SDXL)</option>
+                                <option value="openai">OpenAI API</option>
+                                <option value="pollinations">Pollinations.ai</option>
+                            </select>
+                        </div>
+                        <div id="apiKeyContainer" class="input-wrapper" style="display: none; flex: 1; min-width: 200px;">
+                            <label for="apiKey" style="font-weight: 500; margin-right: 8px;"><i class="fas fa-key"></i> API Key:</label>
+                            <input type="password" id="apiKey" placeholder="Enter OpenAI API key..." style="flex: 1; padding: 8px 12px; border: 2px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 14px;">
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> Local provider requires GPU. If Force CPU is enabled, only external APIs (OpenAI/Pollinations) will work.
+                    </div>
+                </div>
             </div>
             
-            <div id="loading" class="loading" style="display: none;">
-                <div class="spinner"></div>
-                <p>Searching and generating answer...</p>
+            <!-- Separate Loading States -->
+            <div id="loadingContainer" class="loading-container">
+                <!-- Query Loading Card -->
+                <div id="queryLoading" class="loading-card" style="display: none;">
+                    <div class="loading-header">
+                        <i id="queryIcon" class="fas fa-search loading-icon spinning"></i>
+                        <div class="loading-title">Processing Query</div>
+                        <div id="queryStatus" class="loading-status">Searching documents...</div>
+                    </div>
+                    <div class="loading-progress">
+                        <div class="progress-bar">
+                            <div id="queryProgress" class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Image Generation Loading Card -->
+                <div id="imageLoading" class="loading-card" style="display: none;">
+                    <div class="loading-header">
+                        <i id="imageIcon" class="fas fa-palette loading-icon spinning"></i>
+                        <div class="loading-title">Generating Image</div>
+                        <div id="imageStatus" class="loading-status">Creating visualization...</div>
+                    </div>
+                    <div class="loading-progress">
+                        <div class="progress-bar">
+                            <div id="imageProgress" class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <div id="error" class="error" style="display: none;"></div>
+            <div id="error" class="error" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="errorText"></span>
+            </div>
             
             <div id="results" class="results-section">
                 <div id="imageContainer" class="image-section" style="display: none;"></div>
                 
                 <div class="answer-box">
-                    <h3>📝 Answer</h3>
+                    <h3><i class="fas fa-comment-dots"></i> Answer</h3>
                     <div id="answer" class="answer-text"></div>
                 </div>
                 
-                <div class="citations">
-                    <h3>📚 Citations</h3>
-                    <div id="citations"></div>
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection('citations')">
+                        <div class="section-title">
+                            <i class="fas fa-book"></i>
+                            <span>Citations</span>
+                            <span id="citationCount" style="font-size: 0.8em; color: var(--text-secondary); font-weight: 400;"></span>
+                        </div>
+                        <i id="citationsToggle" class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                    <div id="citationsContent" class="section-content">
+                        <div class="section-body">
+                            <div id="citations"></div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="context-section">
-                    <h3>📄 Retrieved Context</h3>
-                    <div id="context"></div>
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection('context')">
+                        <div class="section-title">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Retrieved Context</span>
+                            <span id="contextCount" style="font-size: 0.8em; color: var(--text-secondary); font-weight: 400;"></span>
+                        </div>
+                        <i id="contextToggle" class="fas fa-chevron-down toggle-icon"></i>
+                    </div>
+                    <div id="contextContent" class="section-content">
+                        <div class="section-body">
+                            <div id="context"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <div class="stats">
                 <div class="stat-item">
+                    <div class="stat-icon"><i class="fas fa-database"></i></div>
                     <div class="stat-value" id="docCount">-</div>
                     <div class="stat-label">Indexed Documents</div>
                 </div>
                 <div class="stat-item">
+                    <div class="stat-icon"><i class="fas fa-vector-square"></i></div>
                     <div class="stat-value" id="indexSize">-</div>
                     <div class="stat-label">Index Vectors</div>
                 </div>
@@ -553,30 +1073,151 @@
             }
         }
         
+        // Toggle collapsible sections
+        function toggleSection(sectionName) {
+            const content = document.getElementById(sectionName + 'Content');
+            const toggle = document.getElementById(sectionName + 'Toggle');
+            
+            content.classList.toggle('expanded');
+            toggle.classList.toggle('expanded');
+        }
+        
+        // Show loading state for query
+        function showQueryLoading() {
+            const container = document.getElementById('loadingContainer');
+            const card = document.getElementById('queryLoading');
+            const icon = document.getElementById('queryIcon');
+            const status = document.getElementById('queryStatus');
+            
+            container.classList.add('visible');
+            card.style.display = 'block';
+            card.classList.remove('completed', 'error');
+            icon.className = 'fas fa-search loading-icon spinning';
+            status.textContent = 'Searching documents...';
+            status.className = 'loading-status';
+        }
+        
+        // Show completed state for query
+        function showQueryCompleted() {
+            const card = document.getElementById('queryLoading');
+            const icon = document.getElementById('queryIcon');
+            const status = document.getElementById('queryStatus');
+            const progress = document.getElementById('queryProgress');
+            
+            card.classList.add('completed');
+            icon.className = 'fas fa-check-circle loading-icon completed';
+            status.textContent = 'Completed';
+            status.className = 'loading-status completed';
+            progress.classList.add('completed');
+        }
+        
+        // Show error state for query
+        function showQueryError(message) {
+            const card = document.getElementById('queryLoading');
+            const icon = document.getElementById('queryIcon');
+            const status = document.getElementById('queryStatus');
+            
+            card.classList.add('error');
+            icon.className = 'fas fa-times-circle loading-icon error';
+            status.textContent = message || 'Failed';
+            status.className = 'loading-status error';
+        }
+        
+        // Show loading state for image
+        function showImageLoading() {
+            const card = document.getElementById('imageLoading');
+            const icon = document.getElementById('imageIcon');
+            const status = document.getElementById('imageStatus');
+            
+            card.style.display = 'block';
+            card.classList.remove('completed', 'error');
+            icon.className = 'fas fa-palette loading-icon spinning';
+            status.textContent = 'Creating visualization...';
+            status.className = 'loading-status';
+        }
+        
+        // Show completed state for image
+        function showImageCompleted() {
+            const card = document.getElementById('imageLoading');
+            const icon = document.getElementById('imageIcon');
+            const status = document.getElementById('imageStatus');
+            const progress = document.getElementById('imageProgress');
+            
+            card.classList.add('completed');
+            icon.className = 'fas fa-check-circle loading-icon completed';
+            status.textContent = 'Completed';
+            status.className = 'loading-status completed';
+            progress.classList.add('completed');
+        }
+        
+        // Show error state for image
+        function showImageError(message) {
+            const card = document.getElementById('imageLoading');
+            const icon = document.getElementById('imageIcon');
+            const status = document.getElementById('imageStatus');
+            
+            card.classList.add('error');
+            icon.className = 'fas fa-times-circle loading-icon error';
+            status.textContent = message || 'Failed';
+            status.className = 'loading-status error';
+        }
+        
+        // Hide all loading states
+        function hideAllLoading() {
+            const container = document.getElementById('loadingContainer');
+            setTimeout(() => {
+                container.classList.remove('visible');
+                document.getElementById('queryLoading').style.display = 'none';
+                document.getElementById('imageLoading').style.display = 'none';
+            }, 2000); // Keep visible for 2 seconds after completion
+        }
+        
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 submitQuery();
             }
         }
         
+        function toggleApiKeyInput() {
+            const provider = document.getElementById('imageProvider').value;
+            const apiKeyContainer = document.getElementById('apiKeyContainer');
+            
+            if (provider === 'openai') {
+                apiKeyContainer.style.display = 'flex';
+            } else {
+                apiKeyContainer.style.display = 'none';
+            }
+        }
+        
         async function submitQuery() {
             const query = document.getElementById('queryInput').value.trim();
             if (!query) {
-                alert('Please enter a question');
+                showError('Please enter a question');
                 return;
             }
             
             const generateImage = document.getElementById('imageToggle').checked;
             const topK = parseInt(document.getElementById('topK').value);
+            const forceCpu = document.getElementById('forceCpuToggle').checked;
+            const imageProvider = document.getElementById('imageProvider').value;
+            const apiKey = document.getElementById('apiKey').value.trim();
             
-            
-            // Show loading, hide results and errors
-            document.getElementById('loading').style.display = 'block';
+            // Reset UI
             document.getElementById('results').classList.remove('visible');
             document.getElementById('error').style.display = 'none';
             document.getElementById('submitBtn').disabled = true;
             
+            // Show query loading
+            showQueryLoading();
+            
+            // Validate API key if OpenAI is selected and image generation is enabled
+            if (generateImage && imageProvider === 'openai' && !apiKey) {
+                showError('Please provide an OpenAI API key when using OpenAI image provider');
+                return;
+            }
+            
             try {
+                // Fetch answer
                 const response = await fetch('/answer', {
                     method: 'POST',
                     headers: {
@@ -584,8 +1225,9 @@
                     },
                     body: JSON.stringify({
                         query: query,
-                        generate_image: generateImage,
-                        top_k: topK
+                        generate_image: false,
+                        top_k: topK,
+                        force_cpu: forceCpu
                     })
                 });
                 
@@ -594,16 +1236,99 @@
                 }
                 
                 const data = await response.json();
+                
+                // Show query completed
+                showQueryCompleted();
+                
+                // Display results
                 displayResults(data);
+                
+                // Generate image if requested (non-blocking)
+                if (generateImage) {
+                    showImageLoading();
+                    generateImageAsync(data.answer, query, imageProvider, apiKey, forceCpu);
+                } else {
+                    // Only hide loading if no image generation
+                    hideAllLoading();
+                }
                 
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('error').textContent = 
-                    'Error: ' + error.message;
-                document.getElementById('error').style.display = 'block';
+                showQueryError('Query failed');
+                showError('Error: ' + error.message);
+                // Only hide loading if no image generation was requested
+                if (!generateImage) {
+                    hideAllLoading();
+                }
             } finally {
-                document.getElementById('loading').style.display = 'none';
                 document.getElementById('submitBtn').disabled = false;
+            }
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            const errorText = document.getElementById('errorText');
+            errorText.textContent = message;
+            errorDiv.style.display = 'flex';
+        }
+        
+        async function generateImageAsync(prompt, query, imageProvider, apiKey, forceCpu) {
+            const imageContainer = document.getElementById('imageContainer');
+            imageContainer.style.display = 'none';
+            
+            try {
+                const requestBody = {
+                    prompt: prompt,
+                    query: query,
+                    image_provider: imageProvider,
+                    force_cpu: forceCpu
+                };
+                
+                // Only include API key if it's provided
+                if (apiKey) {
+                    requestBody.api_key = apiKey;
+                }
+                
+                const response = await fetch('/generate-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.image_url) {
+                    imageContainer.innerHTML = `
+                        <h3><i class="fas fa-palette"></i> Generated Image</h3>
+                        <img src="${data.image_url}" alt="Generated visualization" onerror="this.style.display='none'">
+                    `;
+                    imageContainer.style.display = 'block';
+                    showImageCompleted();
+                } else {
+                    imageContainer.innerHTML = `
+                        <h3><i class="fas fa-exclamation-triangle"></i> Image Generation Unavailable</h3>
+                        <p style="color: var(--text-secondary);">${data.error || 'Could not generate image'}</p>
+                    `;
+                    imageContainer.style.display = 'block';
+                    showImageError('Unavailable');
+                }
+            } catch (error) {
+                console.error('Image generation error:', error);
+                imageContainer.innerHTML = `
+                    <h3><i class="fas fa-exclamation-triangle"></i> Image Generation Failed</h3>
+                    <p style="color: var(--text-secondary);">Error: ${error.message}</p>
+                `;
+                imageContainer.style.display = 'block';
+                showImageError('Failed');
+            } finally {
+                // Hide loading states after image generation completes (success or failure)
+                hideAllLoading();
             }
         }
         
@@ -627,10 +1352,13 @@
                 citationItem.innerHTML = `
                     <div class="citation-id">[${index + 1}] ID: ${escapeHtml(citation.doc_id)}</div>
                     <div class="citation-title">${escapeHtml(citation.title)}</div>
-                    <div class="citation-authors" style="color: #888; font-size: 0.9em; margin-top: 3px;">Authors: ${escapeHtml(authors)}</div>
+                    <div class="citation-authors">Authors: ${escapeHtml(authors)}</div>
                 `;
                 citationsDiv.appendChild(citationItem);
             });
+            
+            // Update citation count
+            document.getElementById('citationCount').textContent = `(${data.citations.length})`;
             
             // Trigger MathJax for citations
             if (window.MathJax) {
@@ -647,25 +1375,24 @@
                 contextDiv.appendChild(contextItem);
             });
             
+            // Update context count
+            document.getElementById('contextCount').textContent = `(${data.retrieved_context.length})`;
+            
             // Trigger MathJax for context
             if (window.MathJax) {
                 MathJax.typesetPromise([contextDiv]).catch((err) => console.log('MathJax error:', err));
             }
             
-            // Display image if available
+            // Hide image container initially (image will be loaded asynchronously if requested)
             const imageContainer = document.getElementById('imageContainer');
-            if (data.image_url) {
-                imageContainer.innerHTML = `
-                    <h3 style="margin-bottom: 15px; color: #667eea;">🎨 Generated Image</h3>
-                    <img src="${data.image_url}" alt="Generated visualization" onerror="this.style.display='none'">
-                `;
-                imageContainer.style.display = 'block';
-            } else {
-                imageContainer.style.display = 'none';
-            }
+            imageContainer.style.display = 'none';
             
-            // Show results
+            // Show results with animation
             document.getElementById('results').classList.add('visible');
+            
+            // Auto-expand citations section
+            document.getElementById('citationsContent').classList.add('expanded');
+            document.getElementById('citationsToggle').classList.add('expanded');
         }
         
         // Load stats when page loads

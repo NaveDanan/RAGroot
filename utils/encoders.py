@@ -116,6 +116,15 @@ To fix this:
         self.max_length = max_length
         self.sep_token = self.tokenizer.sep_token
         
+        # Get batch size from config if available
+        try:
+            from .config import config as cfg
+            self.default_batch_size = cfg.EMBEDDING_BATCH_SIZE
+            logger.info(f"Using batch size from config: {self.default_batch_size}")
+        except (ImportError, AttributeError):
+            self.default_batch_size = 32
+            logger.info(f"Using default batch size: {self.default_batch_size}")
+        
         logger.info(f"SPECTER2 encoder loaded successfully on {self.device}")
         logger.info(f"  Embedding dimension: {self.model.config.hidden_size}")
         logger.info(f"  Max length: {max_length}")
@@ -125,7 +134,7 @@ To fix this:
         self,
         titles: List[str],
         abstracts: List[str],
-        batch_size: int = 16,
+        batch_size: int = None,
         normalize: bool = True,
         show_progress: bool = False
     ) -> np.ndarray:
@@ -142,6 +151,10 @@ To fix this:
         Returns:
             numpy array of shape (len(titles), embedding_dim)
         """
+        # Use config batch size if not provided
+        if batch_size is None:
+            batch_size = self.default_batch_size
+        
         # Combine title and abstract with SEP token
         texts = [
             f"{title}{self.sep_token}{abstract or ''}"
@@ -185,7 +198,7 @@ To fix this:
     def encode_texts(
         self,
         texts: List[str],
-        batch_size: int = 16,
+        batch_size: int = None,
         normalize: bool = True
     ) -> np.ndarray:
         """
@@ -199,6 +212,10 @@ To fix this:
         Returns:
             numpy array of shape (len(texts), embedding_dim)
         """
+        # Use config batch size if not provided
+        if batch_size is None:
+            batch_size = self.default_batch_size
+        
         embeddings = []
         
         for i in range(0, len(texts), batch_size):
@@ -303,6 +320,13 @@ class Specter2DualEncoder:
             self.query_model.to(self.device)
             self.max_length = max_length
             
+            # Get batch size from config if available
+            try:
+                from .config import config as cfg
+                self.default_batch_size = cfg.EMBEDDING_BATCH_SIZE
+            except (ImportError, AttributeError):
+                self.default_batch_size = 32
+            
             logger.info(f"Query encoder loaded successfully on {self.device}")
         except Exception as e:
             logger.warning(f"Failed to load query adapter, using document encoder for queries: {e}")
@@ -316,7 +340,7 @@ class Specter2DualEncoder:
     def encode_queries(
         self,
         queries: List[str],
-        batch_size: int = 16,
+        batch_size: int = None,
         normalize: bool = True
     ) -> np.ndarray:
         """
@@ -330,6 +354,10 @@ class Specter2DualEncoder:
         Returns:
             numpy array of shape (len(queries), embedding_dim)
         """
+        # Use config batch size if not provided
+        if batch_size is None:
+            batch_size = self.default_batch_size
+        
         if self.query_model is None:
             # Fallback to document encoder
             return self.doc_encoder.encode_texts(queries, batch_size, normalize)
