@@ -416,7 +416,7 @@ EMBEDDING_MODEL=all-mpnet-base-v2  # Default
 - **Query Input**: Type your question
 - **Results Display**: Answer, citations, and context
 - **Image Toggle**: Enable/disable image generation
-- **Top-K Selection**: Choose number of documents to retrieve (3, 5, or 10)
+- **Top-K Selection**: Choose number of documents to retrieve (1-10)
 - **Live Statistics**: View indexed document count
 
 ## 🐛 Troubleshooting
