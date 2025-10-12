@@ -368,17 +368,48 @@ curl -X POST http://localhost:8080/answer \
 
 ## 📊 Model Information
 
-### Embedding Model
-- **Model**: `all-MiniLM-L6-v2`
-- **Size**: ~80MB
-- **Dimension**: 384
-- **Speed**: ~14,000 sentences/sec on CPU
+### Embedding Model (Configurable)
+
+You can choose between two embedding models based on your needs:
+
+#### Option 1: SPECTER2 (Recommended for Scientific Papers)
+- **Model**: `allenai/specter2_base`
+- **Type**: Scientific document embeddings (BERT-based)
+- **Dimension**: 768
+- **Accuracy**: Higher - Trained specifically on scientific papers
+- **Speed**: Slower (~1,000 sentences/sec on CPU)
+- **Adapters**: 
+  - `allenai/specter2` (proximity) - For document retrieval
+  - `allenai/specter2_adhoc_query` - For ad-hoc queries
+  - `allenai/specter2_classification` - For classification tasks
+- **Requirements**: `adapter-transformers` library
+- **Best For**: Scientific/academic documents where domain-specific accuracy is critical
+
+#### Option 2: all-mpnet-base-v2 (General Purpose)
+- **Model**: `all-mpnet-base-v2`
+- **Size**: ~420MB
+- **Dimension**: 768
+- **Accuracy**: Good - Trained on general text corpus
+- **Speed**: Faster (~2,800 sentences/sec on CPU)
+- **Requirements**: sentence-transformers (built-in)
+- **Best For**: General documents, faster processing, or when scientific specificity is not required
+
+**Configuration**: Set `EMBEDDING_MODEL` in `.env` file:
+```bash
+# For scientific papers (more accurate, slower)
+EMBEDDING_MODEL=allenai/specter2_base
+
+# For general use (faster, good accuracy)
+EMBEDDING_MODEL=all-mpnet-base-v2  # Default
+```
 
 ### LLM Model
 - **Model**: Llama-3.2-3B-Instruct-Q4_K_M
 - **Size**: ~2.4GB
-- **Context**: 4K tokens
+- **Context**: 131K tokens (131072)
 - **Speed**: ~10-20 tokens/sec on CPU (4 cores)
+- **Note**: Extended context window supports longer document processing
+
 
 ## 🎨 Web UI Features
 

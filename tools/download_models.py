@@ -226,17 +226,19 @@ def main():
         print("📚 DOWNLOADING EMBEDDING MODELS")
         print("="*70 + "\n")
         
-        embedding_model = args.embedding_model or config.EMBEDDING_MODEL
         embedding_cache = args.embedding_cache or config.EMBEDDING_CACHE_DIR
         
-        if embedding_model.startswith("allenai/specter2"):
-            # Download SPECTER2
-            if not download_specter2(embedding_cache):
-                success = False
-        else:
-            # Download standard sentence-transformers model
-            if not download_sentence_transformer(embedding_model, embedding_cache):
-                success = False
+        # Always download both embedding models for maximum flexibility
+        logger.info("Downloading SPECTER2 (scientific papers embedding model)...")
+        if not download_specter2(embedding_cache):
+            logger.error("❌ Failed to download SPECTER2")
+            success = False
+        
+        logger.info("\nDownloading all-mpnet-base-v2 (general purpose embedding model)...")
+        if not download_sentence_transformer("all-mpnet-base-v2", embedding_cache):
+            logger.error("❌ Failed to download all-mpnet-base-v2")
+            success = False
+                
     
     # Download image generation models
     if args.all or args.image_only:
