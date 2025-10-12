@@ -1,7 +1,7 @@
 <div align="center">
   <img src="static/public/logo.png" alt="RAGroot Logo" width="200"/>
   
-  # **RAGroot** - *foundational reference app*
+  # **RAGroot** - *Academic Research Assistant*
   
   A fully self-contained Retrieval-Augmented Generation (RAG) system for querying academic abstracts using local LLMs and vector search.
 </div>
@@ -22,7 +22,7 @@
 - **Docker** (with at least 4GB RAM allocated)
 - **CPU**: Works on CPU (4+ cores recommended)
 - **GPU**: Optional, for faster inference
-- **Disk Space**: ~33GB for Docker image (includes models)
+- **Disk Space**: ~35GB for Docker image (include all models)
 
 ## 🏗️ Architecture
 
