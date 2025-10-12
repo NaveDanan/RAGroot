@@ -322,6 +322,9 @@ Examples:
   # Query the system
   python main.py query "What are recent advances in transformers?" --top-k 5
   
+  # Query with streaming (live output)
+  python main.py query "What are recent advances in transformers?" --stream
+  
   # Start the web server
   python main.py serve --port 8080 --host 0.0.0.0
   
@@ -343,6 +346,7 @@ Examples:
     query_parser.add_argument('--top-k', type=int, default=5, help='Number of documents to retrieve')
     query_parser.add_argument('--index-dir', default='index/', help='Index directory')
     query_parser.add_argument('--model', default='models/llama-model.gguf', help='LLM model path')
+    query_parser.add_argument('--stream', action='store_true', help='Stream the answer live as it is generated')
     
     # Serve command
     serve_parser = subparsers.add_parser('serve', help='Start the web server')
@@ -380,6 +384,7 @@ Examples:
         print("="*70)
         print(f"Query: {args.query}")
         print(f"Top-K: {args.top_k}")
+        print(f"Mode: {'Streaming' if args.stream else 'Standard'}")
         print("="*70 + "\n")
         
         # Load indexer
@@ -390,22 +395,70 @@ Examples:
         os.environ['MODEL_PATH'] = args.model
         rag_pipeline = RAGPipeline(indexer)
         
-        # Query
-        result = rag_pipeline.answer_query(args.query, top_k=args.top_k)
-        
-        print("\n📝 Answer:")
-        print("-" * 70)
-        print(result['answer'])
-        print("-" * 70)
-        
-        print("\n📚 Citations:")
-        for i, citation in enumerate(result['citations'], 1):
-            print(f"  [{i}] {citation['doc_id']}: {citation['title']}")
-        
-        print("\n📄 Retrieved Context (first 200 chars each):")
-        for i, context in enumerate(result['retrieved_context'], 1):
-            print(f"  [{i}] {context[:200]}...")
-        print()
+        if args.stream:
+            # Streaming mode
+            import asyncio
+            
+            async def stream_query():
+                full_answer = ""
+                citations = []
+                context = []
+                
+                print("📡 Streaming response...\n")
+                
+                async for chunk in rag_pipeline.stream_answer(args.query, top_k=args.top_k):
+                    chunk_type = chunk.get('type')
+                    content = chunk.get('content')
+                    
+                    if chunk_type == 'citations':
+                        citations = content
+                        print("\n📚 Citations received")
+                    elif chunk_type == 'context':
+                        context = content
+                        print("📄 Context retrieved\n")
+                        print("📝 Answer:")
+                        print("-" * 70)
+                    elif chunk_type == 'token':
+                        print(content, end='', flush=True)
+                        full_answer += content
+                    elif chunk_type == 'complete':
+                        print("\n" + "-" * 70)
+                        print("\n✅ Streaming complete!\n")
+                    elif chunk_type == 'error':
+                        print(f"\n\n❌ Error: {content}")
+                        return
+                
+                # Display citations
+                if citations:
+                    print("\n📚 Citations:")
+                    for i, citation in enumerate(citations, 1):
+                        print(f"  [{i}] {citation['doc_id']}: {citation['title']}")
+                
+                # Display context preview
+                if context:
+                    print("\n📄 Retrieved Context (first 200 chars each):")
+                    for i, ctx in enumerate(context, 1):
+                        print(f"  [{i}] {ctx[:200]}...")
+                print()
+            
+            asyncio.run(stream_query())
+        else:
+            # Standard mode (non-streaming)
+            result = rag_pipeline.answer_query(args.query, top_k=args.top_k)
+            
+            print("\n📝 Answer:")
+            print("-" * 70)
+            print(result['answer'])
+            print("-" * 70)
+            
+            print("\n📚 Citations:")
+            for i, citation in enumerate(result['citations'], 1):
+                print(f"  [{i}] {citation['doc_id']}: {citation['title']}")
+            
+            print("\n📄 Retrieved Context (first 200 chars each):")
+            for i, context in enumerate(result['retrieved_context'], 1):
+                print(f"  [{i}] {context[:200]}...")
+            print()
     
     elif args.command == 'serve':
         print("\n" + "="*70)
