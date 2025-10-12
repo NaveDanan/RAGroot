@@ -218,7 +218,7 @@ Query the system and get a complete answer.
 Stream the answer generation (Server-Sent Events).
 
 >[!NOTE]
->Because of curl's buffering behavior, It buffers the output and doesn't display Server-Sent Events (SSE) in real-time. This is a common problem with streaming endpoints. for real-time update use CLI coomand with --stream flag
+>Because of curl's buffering behavior, It buffers the output and doesn't display Server-Sent Events (SSE) in real-time. This is a common problem with streaming endpoints. for real-time update use CLI command with --stream flag
 
 ```bash
 curl -X POST http://localhost:8080/stream \
