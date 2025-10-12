@@ -170,7 +170,7 @@ Observed latencies (CPU-only server):
 
 ## 🔮 Roadmap Ideas
 - Hybrid retrieval (BM25 + dense), cross-encoder reranking, and query expansion for even higher recall.
-- Enhanced Phi-3 prompts with few-shot exemplars or migration to >8k-context models when hardware permits.
+- Enhanced Llama prompts with few-shot exemplars or migration to >8k-context models when hardware permits.
 - UI polish: conversational chat mode, query history, export/share flows, and MathJax-enabled PDF export.
 - Analytics: capture usage metrics, feedback loops, and automated evaluation dashboards.
 

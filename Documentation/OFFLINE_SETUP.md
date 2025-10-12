@@ -54,7 +54,7 @@ FORCE_CPU=false
 | `SKIP_CHECK_ST_UPDATES` | Skip checking for model updates | `true` |
 | `FORCE_CPU` | Force CPU-only operation | `false` (set to `true` if no GPU) |
 
-## Step 3: Download Models
+## Step 2: Download Models
 
 ### Option A: Automatic Download (Recommended)
 
@@ -62,13 +62,13 @@ Use the provided download script:
 
 ```bash
 # Download all models (embedding + image generation)
-python tools/download_models.py --all
+uv run python tools/download_models.py --all
 
 # Download only embedding models
-python tools/download_models.py --embedding-only
+uv run python tools/download_models.py --embedding-only
 
 # Download only image generation models
-python tools/download_models.py --image-only
+uv run python tools/download_models.py --image-only
 ```
 
 The script will:
@@ -147,11 +147,11 @@ python main.py
 
 The application should start without attempting to download anything.
 
-## Step 5: Build the Index
+## Step 4: Build the Index
 
 ```bash
 # Build vector index from your dataset
-python -m utils.indexer
+uv run python main.py index --data data/arxiv_2.9k.jsonl
 ```
 
 This creates:
@@ -159,14 +159,14 @@ This creates:
 - `index/documents.pkl` - Document metadata
 - `index/embeddings.npy` - Cached embeddings
 
-## Step 6: Run the Application
+## Step 5: Run the Application
 
 ```bash
 # Start the server
-python main.py
+uv run python main.py
 
-# Or using uvicorn directly
-uvicorn main:app --host 0.0.0.0 --port 8080
+# Or using the serve command
+uv run python main.py serve --host 0.0.0.0 --port 8080
 ```
 
 Access the web interface at: `http://localhost:8080`
@@ -358,35 +358,16 @@ EMBEDDING_BATCH_SIZE=64  # Larger batches for GPU
 
 Verify your offline setup:
 
-```python
-# validate_offline.py
-import os
-os.environ['HF_HUB_OFFLINE'] = '1'
-os.environ['TRANSFORMERS_OFFLINE'] = '1'
-
-from utils.config import config
-from utils.indexer import VectorIndexer
-
-print("Testing offline operation...")
-
-# Test embedding model
-print(f"Loading embedding model: {config.EMBEDDING_MODEL}")
-indexer = VectorIndexer(index_dir=config.INDEX_DIR)
-print("✅ Embedding model loaded successfully")
-
-# Test search
-if indexer.index is None:
-    indexer.load_index()
-results = indexer.search("machine learning", top_k=3)
-print(f"✅ Search successful: {len(results)} results")
-
-print("\n🎉 Offline setup validated successfully!")
-```
-
-Run with:
 ```bash
-python validate_offline.py
+# Use the provided validation script
+uv run python tools/validate_offline.py
 ```
+
+This script will:
+- Check that embedding models are cached locally
+- Verify LLM model is present
+- Test that the application can run in offline mode
+- Report any missing components
 
 ## Security Considerations
 

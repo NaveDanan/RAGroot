@@ -15,20 +15,23 @@ Unified reference for tuning and validating the GenAI RAG system. The configurat
 ## ⚡ Quick Start
 
 ```powershell
-# 1. Initialise local config
+# 1. Initialize local config
 Copy-Item .env.example .env
 
-# 2. (Optional) apply tuned defaults and rebuild index
-./setup_improvements.ps1
+# 2. Validate configuration
+uv run python utils/config.py
 
-# 3. (Optional) prepare local Stable Diffusion / Qwen models
-./setup_local_image_gen.ps1
+# 3. Download models for offline operation (optional)
+uv run python tools/download_models.py --all
 
-# 4. Validate everything in one shot
-uv run python config.py
+# 4. Build the index
+uv run python main.py index --data data/arxiv_2.9k.jsonl
+
+# 5. Start the application
+uv run python main.py
 ```
 
-The checker prints current values, masks secrets, confirms file paths, and warns if numeric ranges are violated.
+The configuration checker prints current values, masks secrets, confirms file paths, and warns if numeric ranges are violated.
 
 ## 📚 Configuration Reference
 
@@ -80,7 +83,7 @@ The mpnet + reranker combo is tuned for factual responses. Reduce `RERANK_MULTIP
 
 | Variable | Default | Behaviour |
 |----------|---------|-----------|
-| `MAX_TOKENS` | `600` | Hard stop for Phi-3 output |
+| `MAX_TOKENS` | `600` | Hard stop for LLM output |
 | `TEMPERATURE` | `0.3` | Controls creativity—lowered to fight hallucinations |
 | `TOP_P` | `0.85` | Nucleus sampling cutoff |
 | `REPEAT_PENALTY` | `1.1` | Penalises repeated phrases |
@@ -143,6 +146,7 @@ INDEX_DIR=index
 MODEL_PATH=models/llama-model.gguf
 LOG_LEVEL=debug
 N_THREADS=8
+PORT=8080
 IMAGE_API_PROVIDER=pollinations
 ```
 
@@ -155,6 +159,7 @@ HOST=0.0.0.0
 PORT=8080
 LOG_LEVEL=info
 ENABLE_STREAMING=true
+EMBEDDING_LOCAL_ONLY=true
 ```
 
 ### GPU Workstation with Local Stable Diffusion 3.5
@@ -176,11 +181,11 @@ FORCE_REBUILD=false
 
 ## 🛠️ Validation & Tooling
 
-- `uv run python config.py` – prints the config and validates ranges/paths.
-- `evaluate_rag.py` – proves the tuned configuration achieves ~78/100 evaluation score.
-- `setup_improvements.ps1` – applies new defaults, wipes stale indices, triggers mpnet rebuild.
-- `setup_local_image_gen.ps1` – installs PyTorch CUDA wheels, downloads models, updates `.env` with appropriate provider settings.
-- `tools/test_image_gen.py` – sanity-checks GPU availability, VRAM, and sample generation.
+- `uv run python utils/config.py` – prints the config and validates ranges/paths.
+- `uv run python tests/evaluate_rag.py` – proves the tuned configuration achieves ~78/100 evaluation score.
+- `uv run python tools/download_models.py` – downloads embedding and image generation models for offline operation.
+- `uv run python tools/validate_offline.py` – validates that all models are present for offline operation.
+- `uv run python tests/test_image_gen.py` – sanity-checks GPU availability, VRAM, and sample generation.
 
 ## 🔒 Security Practices
 

@@ -3,8 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academic Research Assistant | AI-Powered RAG</title>
+    <title>RAGroot - foundational reference app | AI-Powered RAG</title>
     <meta name="description" content="AI-powered academic research assistant using RAG to answer questions about research papers">
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/public/logo.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/public/logo.png">
+    <link rel="apple-touch-icon" href="/static/public/logo.png">
     <!-- Marked.js for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Font Awesome for modern icons -->
@@ -27,12 +32,9 @@
     <style>
         :root {
             --primary-color: #667eea;
-            --primary-dark: #5568d3;
             --secondary-color: #764ba2;
-            --accent-color: #f093fb;
             --success-color: #10b981;
             --error-color: #ef4444;
-            --warning-color: #f59e0b;
             --text-primary: #1f2937;
             --text-secondary: #6b7280;
             --bg-primary: #ffffff;
@@ -121,10 +123,6 @@
             margin-bottom: 10px;
             font-weight: 700;
             letter-spacing: -0.02em;
-        }
-        
-        .header h1 i {
-            margin-right: 10px;
         }
         
         .header p {
@@ -551,12 +549,6 @@
             padding: 0 24px 24px 24px;
         }
         
-        .citations h3, .context-section h3 {
-            color: var(--secondary-color);
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-        
         .citation-item {
             padding: 16px;
             margin-bottom: 12px;
@@ -839,7 +831,10 @@
     <div class="container">
         <div class="header">
             <div class="header-content">
-                <h1><i class="fas fa-microscope"></i> Academic Research Assistant</h1>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 10px;">
+                    <img src="/static/public/logo.png" alt="RAGroot Logo" style="width: 80px; height: 80px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));">
+                    <h1 style="margin: 0;">RAGroot | Academic Research Assistant</h1>
+                </div>
                 <p>Ask questions about academic papers powered by AI</p>
             </div>
         </div>
@@ -855,6 +850,7 @@
                             placeholder="Ask a question about research papers..."
                             onkeypress="handleKeyPress(event)"
                             aria-label="Search query"
+                            autocomplete="off"
                         >
                     </div>
                     <button id="submitBtn" onclick="submitQuery()" aria-label="Submit query">
@@ -910,7 +906,7 @@
                         </div>
                         <div id="apiKeyContainer" class="input-wrapper" style="display: none; flex: 1; min-width: 200px;">
                             <label for="apiKey" style="font-weight: 500; margin-right: 8px;"><i class="fas fa-key"></i> API Key:</label>
-                            <input type="password" id="apiKey" placeholder="Enter OpenAI API key..." style="flex: 1; padding: 8px 12px; border: 2px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 14px;">
+                            <input type="password" id="apiKey" placeholder="Enter OpenAI API key..." style="flex: 1; padding: 8px 12px; border: 2px solid var(--border-color); border-radius: var(--radius-sm); font-family: inherit; font-size: 14px;" autocomplete="off">
                         </div>
                     </div>
                     <div style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);">

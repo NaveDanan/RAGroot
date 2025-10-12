@@ -22,18 +22,21 @@ Spin up the latest RAG stack—complete with mpnet retrieval, LaTeX rendering, a
 
 ### 1. Prepare the environment
 ```powershell
+# Copy environment configuration
 Copy-Item .env.example .env
-./setup.ps1                 # installs deps, checks paths
-./setup_improvements.ps1    # enables mpnet + reranking, rebuilds index
-```
 
-Use `./setup_local_image_gen.ps1` **only** if you plan to run Stable Diffusion / Qwen locally.
+# Install dependencies using uv
+uv sync
+
+# Download models for offline operation (optional)
+uv run python tools/download_models.py --all
+```
 
 ### 2. Validate configuration
 ```powershell
-uv run python config.py
+uv run python utils/config.py
 ```
-Ensure the checker reports “✅ Configuration is valid!”. Fix missing paths or ranges if needed.
+Ensure the checker reports "✅ Loaded configuration from...". Fix missing paths or ranges if needed.
 
 ### 3. Launch the API
 ```powershell
@@ -42,8 +45,8 @@ uv run python main.py
 Wait for `INFO:main:System initialized successfully` in the console (index build takes ~3–4 minutes on first run).
 
 ### 4. Use the app
-- Open `http://127.0.0.1:8000` for the MathJax-enabled UI.
-- Hit `http://127.0.0.1:8000/docs` for interactive Swagger API docs.
+- Open `http://127.0.0.1:8080` for the MathJax-enabled UI.
+- Hit `http://127.0.0.1:8080/docs` for interactive Swagger API docs.
 - Stream completions from `/stream` (Server-Sent Events) to see token-by-token output.
 
 ## Path B – Docker (Portable runtime)
@@ -76,13 +79,13 @@ Startup is complete when you see the same “System initialized successfully” 
 
 ### Command-line regression tests
 ```powershell
-uv run python test_api.py
+uv run python tests/test_api.py
 ```
 Runs happy-path API checks using the current config.
 
 ### Quality evaluation (optional but recommended)
 ```powershell
-python evaluate_rag.py
+uv run python tests/evaluate_rag.py
 ```
 Target score: ~78/100 (Grade B) after the mpnet/reranking improvements.
 
@@ -104,7 +107,7 @@ Switch providers by editing `.env` and restarting `main.py` or the Docker contai
    IMAGE_MODEL_PATH=models/stable-diffusion-3.5-medium
    HF_TOKEN=hf_xxxxx
    ```
-3. Run `setup_local_image_gen.ps1` to download and configure the model.
+3. Run `uv run python tools/download_models.py --image-only` to download the model.
 
 ### Need a lighter option?
 - `stabilityai/sdxl-turbo` – ~7 GB, very fast, good quality.
@@ -125,7 +128,7 @@ Switch providers by editing `.env` and restarting `main.py` or the Docker contai
 | `DATA_PATH not found` | Use absolute path when inside Docker (`/data/...`) and mount the dataset read-only. |
 | CUDA out-of-memory on image gen | Reduce resolution, switch to SDXL Turbo, or set `IMAGE_API_PROVIDER=pollinations`. |
 | UI shows raw `$...$` | Check browser console for MathJax errors; clear cache. |
-| Evaluation score <70 | Verify logs show `Embedding model loaded (dim=768)` and rerun `setup_improvements.ps1` + index rebuild. |
+| Evaluation score <70 | Verify logs show `Embedding model loaded (dim=768)` and rebuild index with `uv run python main.py index`. |
 
 ## 📈 Performance Expectations (CPU baseline)
 

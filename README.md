@@ -1,6 +1,10 @@
-# GenAI RAG Application
-
-A fully self-contained Retrieval-Augmented Generation (RAG) system for querying academic abstracts using local LLMs and vector search.
+<div align="center">
+  <img src="static/public/logo.png" alt="RAGroot Logo" width="200"/>
+  
+  # **RAGroot** - *foundational reference app*
+  
+  A fully self-contained Retrieval-Augmented Generation (RAG) system for querying academic abstracts using local LLMs and vector search.
+</div>
 
 ## 🚀 Features
 
@@ -106,7 +110,6 @@ RAG_PDF/
 │   └── arxiv_2.9k.jsonl           # Dataset file
 ├── Documentation/
 │   ├── ARCHITECTURE.md             # System design and components
-│   ├── CLI_GUIDE.md                # Command-line interface guide
 │   ├── CONFIGURATION.md            # Configuration options
 │   ├── DOCKER_DEPLOYMENT.md        # Docker deployment guide
 │   ├── IMAGE_GENERATION.md         # Image generation setup
@@ -397,7 +400,7 @@ docker run --rm -p 8081:8080 ...
 ### Out of memory
 ```bash
 # Increase Docker memory allocation or use smaller model
-# Edit Dockerfile to use TinyLlama instead of Phi-3
+# Adjust N_GPU_LAYERS or switch to CPU-only mode
 ```
 
 ### Slow inference
@@ -414,14 +417,19 @@ docker run --rm -p 8080:8080 \
   navedanan/genai-app:latest
 ```
 
-## � Documentation
+## 📚 Documentation
 
 For detailed setup and configuration guides, see:
 
-- **[Offline/On-Premise Setup](Documentation/OFFLINE_SETUP.md)** - Complete guide for air-gapped deployment
-- **[Configuration Guide](Documentation/CONFIGURATION.md)** - All configuration options explained
-- **[Architecture Overview](Documentation/ARCHITECTURE.md)** - System design and components
 - **[Quick Start Guide](Documentation/QUICKSTART.md)** - Get up and running in minutes
+- **[Architecture Overview](Documentation/ARCHITECTURE.md)** - System design and components
+- **[Configuration Guide](Documentation/CONFIGURATION.md)** - All configuration options explained
+- **[Offline/On-Premise Setup](Documentation/OFFLINE_SETUP.md)** - Complete guide for air-gapped deployment
+- **[Docker Deployment](Documentation/DOCKER_DEPLOYMENT.md)** - Docker and docker-compose setup
+- **[Image Generation](Documentation/IMAGE_GENERATION.md)** - Image generation provider configuration
+- **[LaTeX Utils](Documentation/LATEX_UTILS.md)** - LaTeX processing and symbol support
+
+For CLI usage, run: `python main.py --help`
 
 ### Offline Operation
 
@@ -444,17 +452,20 @@ python main.py
 
 See [Documentation/OFFLINE_SETUP.md](Documentation/OFFLINE_SETUP.md) for detailed instructions.
 
-## �📝 License
+## 📝 License
 
-This project is provided as-is for the GenAI Engineer assignment.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2025 Naved Danan
 
 ## 🙏 Acknowledgments
 
 - **sentence-transformers**: Semantic embeddings
 - **FAISS**: Efficient vector search
 - **llama.cpp**: Efficient LLM inference
-- **Phi-3**: Microsoft's compact language model
-- **Pollinations.ai**: Free image generation
+- **Llama-3.2**: Meta's efficient language model
+- **Stable Diffusion**: Local image generation
+- **Pollinations.ai**: Free image generation API
 - **FastAPI**: Modern web framework
 
 ## 📧 Support
