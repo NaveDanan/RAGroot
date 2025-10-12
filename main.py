@@ -124,17 +124,25 @@ def initialize_system():
         logger.error(error_msg)
         raise FileNotFoundError(error_msg)
     
-    # Check if dataset has changed
+    # Check if dataset or embedding model has changed
     new_hash = compute_file_hash(data_path)
     hash_file = Path(index_dir) / "dataset_hash.txt"
+    model_file = Path(index_dir) / "embedding_model.txt"
     
     needs_reindex = True
-    if hash_file.exists():
+    if hash_file.exists() and model_file.exists():
         with open(hash_file, 'r') as f:
             old_hash = f.read().strip()
-            if old_hash == new_hash:
-                needs_reindex = False
-                logger.info("Dataset unchanged, loading existing index")
+        with open(model_file, 'r') as f:
+            old_model = f.read().strip()
+        
+        if old_hash == new_hash and old_model == config.EMBEDDING_MODEL:
+            needs_reindex = False
+            logger.info(f"Dataset and embedding model unchanged, loading existing index")
+        elif old_hash != new_hash:
+            logger.info(f"Dataset changed, rebuilding index...")
+        elif old_model != config.EMBEDDING_MODEL:
+            logger.info(f"Embedding model changed from '{old_model}' to '{config.EMBEDDING_MODEL}', rebuilding index...")
     
     # Initialize components
     indexer = VectorIndexer(index_dir=index_dir)
@@ -142,10 +150,12 @@ def initialize_system():
     if needs_reindex:
         logger.info("Building new index...")
         indexer.build_index(data_path)
-        # Save hash
+        # Save hash and model name
         Path(index_dir).mkdir(parents=True, exist_ok=True)
         with open(hash_file, 'w') as f:
             f.write(new_hash)
+        with open(model_file, 'w') as f:
+            f.write(config.EMBEDDING_MODEL)
         logger.info("Index built successfully")
     else:
         logger.info("Loading existing index...")

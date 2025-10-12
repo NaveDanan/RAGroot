@@ -90,17 +90,17 @@ To fix this:
         else:
             # Use standard SentenceTransformer models
             try:
+                # For sentence-transformers 2.5.1, local_files_only is set via environment variable
                 self.encoder = SentenceTransformer(
                     config.EMBEDDING_MODEL,
                     device=device,
-                    cache_folder=str(cache_dir),
-                    local_files_only=config.EMBEDDING_LOCAL_ONLY
+                    cache_folder=str(cache_dir)
                 )
                 self.embedding_dim = self.encoder.get_sentence_embedding_dimension()
                 self.use_specter2 = False
-                logger.info(f"Loaded model from local cache: {cache_dir}/{config.EMBEDDING_MODEL}")
+                logger.info(f"Loaded model from cache: {cache_dir}/{config.EMBEDDING_MODEL}")
             except Exception as e:
-                logger.error(f"Failed to load embedding model '{config.EMBEDDING_MODEL}' from local cache.")
+                logger.error(f"Failed to load embedding model '{config.EMBEDDING_MODEL}'.")
                 logger.error(f"Error: {e}")
                 if config.EMBEDDING_LOCAL_ONLY:
                     logger.error(f"""\n{'='*70}
@@ -236,6 +236,11 @@ To fix this:
         
         # Save embeddings (optional, for debugging)
         np.save(self.index_dir / "embeddings.npy", self.embeddings)
+        
+        # Save embedding model name for change detection
+        from .config import config
+        with open(self.index_dir / "embedding_model.txt", 'w') as f:
+            f.write(config.EMBEDDING_MODEL)
         
         logger.info("Index saved successfully")
     
