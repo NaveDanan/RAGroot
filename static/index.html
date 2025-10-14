@@ -1213,8 +1213,40 @@
             }
             
             try {
-                // Fetch answer
-                const response = await fetch('/answer', {
+                // Use streaming endpoint for live answer generation
+                await streamAnswer(query, topK, forceCpu, generateImage, imageProvider, apiKey);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showQueryError('Query failed');
+                showError('Error: ' + error.message);
+                // Only hide loading if no image generation was requested
+                if (!generateImage) {
+                    hideAllLoading();
+                }
+            } finally {
+                document.getElementById('submitBtn').disabled = false;
+            }
+        }
+        
+        async function streamAnswer(query, topK, forceCpu, generateImage, imageProvider, apiKey) {
+            // Prepare result containers
+            let fullAnswer = "";
+            let citations = [];
+            let retrievedContext = [];
+            let tokenCount = 0;
+            
+            console.log('🚀 Starting stream for query:', query);
+            
+            // Show results section early
+            document.getElementById('results').classList.add('visible');
+            const answerDiv = document.getElementById('answer');
+            answerDiv.innerHTML = '<div style="opacity: 0.7;"><i class="fas fa-circle-notch fa-spin"></i> Generating answer...</div>';
+            
+            try {
+                // Create SSE connection to streaming endpoint
+                console.log('📡 Connecting to /stream endpoint...');
+                const response = await fetch('/stream', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1231,33 +1263,124 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const data = await response.json();
+                console.log('✅ Connected! Reading stream...');
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
                 
-                // Show query completed
-                showQueryCompleted();
-                
-                // Display results
-                displayResults(data);
-                
-                // Generate image if requested (non-blocking)
-                if (generateImage) {
-                    showImageLoading();
-                    generateImageAsync(data.answer, query, imageProvider, apiKey, forceCpu);
-                } else {
-                    // Only hide loading if no image generation
-                    hideAllLoading();
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) {
+                        console.log('🏁 Stream ended');
+                        break;
+                    }
+                    
+                    buffer += decoder.decode(value, {stream: true});
+                    const lines = buffer.split('\n');
+                    
+                    // Keep the last incomplete line in the buffer
+                    buffer = lines.pop() || '';
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                console.log('📦 Received:', data.type, data.type === 'token' ? `"${data.content}"` : '');
+                                
+                                if (data.type === 'citations') {
+                                    citations = data.content;
+                                    console.log(`📚 ${citations.length} citations received`);
+                                    // Update citations display
+                                    displayCitations(citations);
+                                } else if (data.type === 'context') {
+                                    retrievedContext = data.content;
+                                    console.log(`📄 ${retrievedContext.length} context documents received`);
+                                    // Update context display
+                                    displayContext(retrievedContext);
+                                    // Clear loading message and prepare for streaming
+                                    answerDiv.innerHTML = '';
+                                } else if (data.type === 'token') {
+                                    // Append token to answer in real-time
+                                    tokenCount++;
+                                    fullAnswer += data.content;
+                                    answerDiv.innerHTML = renderMarkdownWithLatex(fullAnswer);
+                                    // Trigger MathJax less frequently for performance
+                                    if (tokenCount % 10 === 0 && window.MathJax) {
+                                        MathJax.typesetPromise([answerDiv]).catch((err) => console.log('MathJax error:', err));
+                                    }
+                                } else if (data.type === 'complete') {
+                                    console.log(`✅ Complete! ${tokenCount} tokens received`);
+                                    // Final MathJax render
+                                    if (window.MathJax) {
+                                        MathJax.typesetPromise([answerDiv]).catch((err) => console.log('MathJax error:', err));
+                                    }
+                                    // Answer generation complete
+                                    showQueryCompleted();
+                                    
+                                    // Generate image if requested (non-blocking)
+                                    if (generateImage) {
+                                        showImageLoading();
+                                        generateImageAsync(fullAnswer, query, imageProvider, apiKey, forceCpu);
+                                    } else {
+                                        hideAllLoading();
+                                    }
+                                } else if (data.type === 'error') {
+                                    throw new Error(data.content);
+                                }
+                            } catch (e) {
+                                console.warn('⚠️ Error parsing SSE data:', e, 'Line:', line);
+                            }
+                        }
+                    }
                 }
                 
             } catch (error) {
-                console.error('Error:', error);
-                showQueryError('Query failed');
-                showError('Error: ' + error.message);
-                // Only hide loading if no image generation was requested
-                if (!generateImage) {
-                    hideAllLoading();
-                }
-            } finally {
-                document.getElementById('submitBtn').disabled = false;
+                console.error('❌ Streaming error:', error);
+                showQueryError('Streaming failed');
+                throw error;
+            }
+        }
+        
+        function displayCitations(citations) {
+            const citationsDiv = document.getElementById('citations');
+            citationsDiv.innerHTML = '';
+            citations.forEach((citation, index) => {
+                const citationItem = document.createElement('div');
+                citationItem.className = 'citation-item';
+                const authors = citation.authors || 'Unknown';
+                citationItem.innerHTML = `
+                    <div class="citation-id">[${index + 1}] ID: ${escapeHtml(citation.doc_id)}</div>
+                    <div class="citation-title">${escapeHtml(citation.title)}</div>
+                    <div class="citation-authors">Authors: ${escapeHtml(authors)}</div>
+                `;
+                citationsDiv.appendChild(citationItem);
+            });
+            
+            // Update citation count
+            document.getElementById('citationCount').textContent = `(${citations.length})`;
+            
+            // Trigger MathJax for citations
+            if (window.MathJax) {
+                MathJax.typesetPromise([citationsDiv]).catch((err) => console.log('MathJax error:', err));
+            }
+        }
+        
+        function displayContext(retrievedContext) {
+            const contextDiv = document.getElementById('context');
+            contextDiv.innerHTML = '';
+            retrievedContext.forEach((context, index) => {
+                const contextItem = document.createElement('div');
+                contextItem.className = 'context-item';
+                contextItem.innerHTML = `<strong>Document ${index + 1}:</strong> ${escapeHtml(context)}`;
+                contextDiv.appendChild(contextItem);
+            });
+            
+            // Update context count
+            document.getElementById('contextCount').textContent = `(${retrievedContext.length})`;
+            
+            // Trigger MathJax for context
+            if (window.MathJax) {
+                MathJax.typesetPromise([contextDiv]).catch((err) => console.log('MathJax error:', err));
             }
         }
         
@@ -1339,45 +1462,10 @@
             }
             
             // Display citations
-            const citationsDiv = document.getElementById('citations');
-            citationsDiv.innerHTML = '';
-            data.citations.forEach((citation, index) => {
-                const citationItem = document.createElement('div');
-                citationItem.className = 'citation-item';
-                const authors = citation.authors || 'Unknown';
-                citationItem.innerHTML = `
-                    <div class="citation-id">[${index + 1}] ID: ${escapeHtml(citation.doc_id)}</div>
-                    <div class="citation-title">${escapeHtml(citation.title)}</div>
-                    <div class="citation-authors">Authors: ${escapeHtml(authors)}</div>
-                `;
-                citationsDiv.appendChild(citationItem);
-            });
-            
-            // Update citation count
-            document.getElementById('citationCount').textContent = `(${data.citations.length})`;
-            
-            // Trigger MathJax for citations
-            if (window.MathJax) {
-                MathJax.typesetPromise([citationsDiv]).catch((err) => console.log('MathJax error:', err));
-            }
+            displayCitations(data.citations);
             
             // Display context
-            const contextDiv = document.getElementById('context');
-            contextDiv.innerHTML = '';
-            data.retrieved_context.forEach((context, index) => {
-                const contextItem = document.createElement('div');
-                contextItem.className = 'context-item';
-                contextItem.innerHTML = `<strong>Document ${index + 1}:</strong> ${escapeHtml(context)}`;
-                contextDiv.appendChild(contextItem);
-            });
-            
-            // Update context count
-            document.getElementById('contextCount').textContent = `(${data.retrieved_context.length})`;
-            
-            // Trigger MathJax for context
-            if (window.MathJax) {
-                MathJax.typesetPromise([contextDiv]).catch((err) => console.log('MathJax error:', err));
-            }
+            displayContext(data.retrieved_context);
             
             // Hide image container initially (image will be loaded asynchronously if requested)
             const imageContainer = document.getElementById('imageContainer');
