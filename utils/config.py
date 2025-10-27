@@ -155,7 +155,7 @@ class Config:
         return True
     
     @classmethod
-    def print_config(cls):
+    def print_config(cls) -> None:
         """Print current configuration (masking sensitive values)."""
         print("\n" + "="*70)
         print("📋 Current Configuration")
